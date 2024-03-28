@@ -1,18 +1,22 @@
-from rotation_matrix_for_schur import rotation_matrix_for_schur
 import numpy as np
 import h5py
-from datetime import datetime
 import pandas as pd
 from pfapack import pfaffian as pf
-#from memory_profiler import profile
 from scipy import linalg
+
 np.set_printoptions(suppress=False, linewidth=np.nan)
-#@profile
-def create_correlation_block(B, ntimes, filename):
+
+def create_correlation_block_Schur(B):
     
     dim_B = B.shape[0]
 
-    """
+    #_______The following block computes the correlation matrix by explicitly evaluating the correlation functions in the basis where the matrix B is in Schur form____
+    #_______Afterwards, the correlation matrix is rotated back to the original basis____
+    #_______The resulting correlation matrix is in block form [[< c c^\dagger> ,< c c>],[< c^\dagger c^\dagger> ,< c^\dagger c>]], where each of the four blocks has size (dim_b x dim_B)____
+    #_______This procedure works well but may be numerically unstable when the matrix B has many degenerate eigenvalues____
+    #_______Therefore, in practice, it can be advantageous to use the more stable procedure below which compute the correlation matrix by evaluating Pfaffians____
+    #_______Results are equivalent____
+
     random_part = np.random.rand(dim_B,dim_B) * 1.e-8
     B += random_part - random_part.T #add small antisymmetric part to make sure that the schur decomposition does not suffer from numerical issues to the degeneracies in B
 
@@ -51,44 +55,107 @@ def create_correlation_block(B, ntimes, filename):
     double_R = np.bmat([[R, np.zeros((dim_B, dim_B),dtype=np.complex_)],[np.zeros((dim_B, dim_B),dtype=np.complex_), R.conj()]])
     
     corr_block_back_rotated = double_R @ corr_block_diag @ double_R.T.conj()#rotate correlation block back from diagonal basis to original fermion basis
-    """
-    B_large = np.zeros((4*dim_B, 4*dim_B), dtype=np.complex_)
-    B_large[:dim_B, :dim_B] = B.T.conj()*0.5
-    B_large[3*dim_B:, 3*dim_B:] = 0.5*B
+    #Attention: At this point, the correlation matrix "corr_block_back_rotated" is in block form [[< c c^\dagger> ,< c c>],[< c^\dagger c^\dagger> ,< c^\dagger c>]], where each of the four blocks has size (dim_b x dim_B). 
 
+    return corr_block_back_rotated
+
+def create_correlation_block_Pfaffian(B):
+    #_______The following block computes the correlation matrix by evaluating Pfaffians____
+    #_______The resulting correlation matrix is in block form [[< c c^\dagger> ,< c c>],[< c^\dagger c^\dagger> ,< c^\dagger c>]], where each of the four blocks has size (dim_b x dim_B)____
+    #_______This procedure is more stable than the one above and works well even when the matrix B has many degenerate eigenvalues____
+    #_______Results are equivalent to the above procedure____
+
+    # We want to evaluate expectation values of the form <c_a c_b^\dagger>  = <vac| e^{\sum_{ij} (B_ij)^\dagger c_i c_j} c_a c_b^\dagger e^{\sum_{ij} B_kl c_k^\dagger c_l^\dagger} |vac>
+    #Combine both, B and B^\dagger, into one large matrix B_large, such that the expectation value can be written as Pfaffian of the inverse of B_large
+    B_large = np.zeros((4*dim_B, 4*dim_B), dtype=np.complex_)
+    B_large[:dim_B, :dim_B] = B.T.conj()*0.5 
+    B_large[3*dim_B:, 3*dim_B:] = 0.5*B 
+
+    #add the Grassmann measure to the matrix B_large
     for i in range(3):
         i_n = (i+1)*dim_B
-        B_large[i_n:i_n+dim_B, i_n-dim_B:i_n] = -0.5 * np.eye(dim_B)
-        B_large[i_n-dim_B:i_n, i_n:i_n+dim_B] = 0.5 * np.eye(dim_B)
+        B_large[i_n:i_n+dim_B, i_n-dim_B:i_n] = -0.5 * np.eye(dim_B) 
+        B_large[i_n-dim_B:i_n, i_n:i_n+dim_B] = 0.5 * np.eye(dim_B) 
 
+    #invert the large matrix B_large
     B_large_inv = linalg.inv(B_large)
+
+    #initialize the correlation matrix in block form
     corr_pfaff = np.zeros((2*dim_B,2*dim_B),dtype=np.complex_)
-    corr_pfaff[:dim_B,:dim_B] = np.eye(dim_B)
+    #anticommute fermions in first block which gives rise to the identity matrix, and compute remaining part via Pfaffian
+    corr_pfaff[:dim_B,:dim_B] = np.eye(dim_B) 
+
+    #Now, evaluate the different correlation functions by computing Pfaffians of the inverse of the large matrix B_large
+    #Here, no change of basis is necessary as the Pfaffians are directly evaluated in the original basis
     for i in range (dim_B):
         for j in range (dim_B):
             corr_pfaff[i,j] +=   0.5 *pf.pfaffian(np.array(pd.DataFrame(B_large_inv.T).iloc[[i+2*dim_B,j+dim_B], [i+2*dim_B,j+dim_B]]))
             corr_pfaff[i+dim_B,j+dim_B] +=  0.5 *pf.pfaffian(np.array(pd.DataFrame(B_large_inv.T).iloc[[i+dim_B,j+2*dim_B], [i+dim_B,j+2*dim_B]]))
             corr_pfaff[i,j+dim_B] +=  0.5 *pf.pfaffian(np.array(pd.DataFrame(B_large_inv.T).iloc[[i+2*dim_B,j+2*dim_B], [i+2*dim_B,j+2*dim_B]]))
             corr_pfaff[i+dim_B,j] +=  0.5 *pf.pfaffian(np.array(pd.DataFrame(B_large_inv.T).iloc[[i+dim_B,j+dim_B], [i+dim_B,j+dim_B]]))
-    corr_block_back_rotated = corr_pfaff
 
-
-    #Attention: At this point, the correlation matrix "corr_block_back_rotated" is in block form [[< c c^\dagger> ,< c c>],[< c^\dagger c^\dagger> ,< c^\dagger c>]], where each of the four blocks has size (dim_b x dim_B). 
-    #To bring it into form specified in pdf, we must reshuffle (below)
-
-    corr_block_back_rotated_reshuf = np.zeros(corr_block_back_rotated.shape,dtype=np.complex_)
-    corr_block_back_rotated_reshuf[::2,::2] = corr_block_back_rotated[:dim_B,:dim_B]
-    corr_block_back_rotated_reshuf[::2,1::2] = corr_block_back_rotated[:dim_B,dim_B:]
-    corr_block_back_rotated_reshuf[1::2,::2] = corr_block_back_rotated[dim_B:,:dim_B]
-    corr_block_back_rotated_reshuf[1::2,1::2] = corr_block_back_rotated[dim_B:,dim_B:]
-
-    #store for Benedikt:
-    filename_correlations =  filename + '_correlations_Benedikt'
-    with h5py.File(filename_correlations + ".hdf5", 'a') as f:
-        dset_corr = f.create_dataset('corr_t='+ str(ntimes), (corr_block_back_rotated_reshuf.shape[0],corr_block_back_rotated_reshuf.shape[1]),dtype=np.complex_)
-        dset_corr[:,:] = corr_block_back_rotated_reshuf[:,:]
-    print('Correlations stored for Benedikt.')
+    corr_block_back_rotated = corr_pfaff # assign to new variable in order to highlight relationship to the Schur method above. No change of basis necessary here.
     
-
+    #Attention: At this point, the correlation matrix "corr_block_back_rotated" is in block form [[< c c^\dagger> ,< c c>],[< c^\dagger c^\dagger> ,< c^\dagger c>]], where each of the four blocks has size (dim_b x dim_B). 
     return corr_block_back_rotated
+
+def reshuffle_corr_matrix(corr_matrix):
+    """
+    Input:
+    corr_matrix: correlation matrix in block form [[< c c^\dagger> ,< c c>],[< c^\dagger c^\dagger> ,< c^\dagger c>]], where each of the four blocks has size (dim_b x dim_B).
+    Output:
+    corr_block_back_rotated_reshuf: reshuffled correlation matrix in the form Lambda = [[Lambda_{00}, Lambda_{01}, ...],[Lambda_{10}, Lambda_{11}, ...], ...], where Lambda_{ij} = [[< c_i c_j^\dagger>, <c_i c_j>], [< c_i^\dagger c_j^\dagger> ,< c_i^\dagger c_j>]]. 
+    """
+    dim_B = corr_matrix.shape[0]//2
+    corr_block_back_rotated_reshuf = np.zeros(corr_matrix.shape,dtype=np.complex_)
+    corr_block_back_rotated_reshuf[::2,::2] = corr_matrix[:dim_B,:dim_B]
+    corr_block_back_rotated_reshuf[::2,1::2] = corr_matrix[:dim_B,dim_B:]
+    corr_block_back_rotated_reshuf[1::2,::2] = corr_matrix[dim_B:,:dim_B]
+    corr_block_back_rotated_reshuf[1::2,1::2] = corr_matrix[dim_B:,dim_B:]
+
+    return corr_block_back_rotated_reshuf
+
+def store_correlation_matrix(corr_matrix, filename):
+
+    #store correlation matrix in hdf5 file
+    filename_correlations =  filename + '_correlations'
+    with h5py.File(filename_correlations + ".hdf5", 'a') as f:
+        dset_corr = f.create_dataset('corr_dim='+ str(corr_matrix.shape[0]), (corr_matrix.shape[0],corr_matrix.shape[1]),dtype=np.complex_)
+        dset_corr[:,:] = corr_matrix[:,:]
+
+    print('Correlations stored successfully.')
+
+
+if __name__ == "__main__":
+    
+    #test that both ways of computing the correlation matrix give the same result
+
+    #generate random antisymmetric matrix B
+    dim_B = 10
+    B = np.random.rand(dim_B,dim_B) 
+    #make B antisymmetric
+    B = B - B.T
+
+    #compute correlation matrices by:
+    #1. explicitly rotating B into Schur form and then back to the original basis
+    corr_block_Schur = create_correlation_block_Schur(B)
+    #2. evaluating Pfaffians
+    corr_block_Pfaffian = create_correlation_block_Pfaffian(B)
+
+    #check that both ways give the same result
+    corr_matrices_equal = np.allclose(corr_block_Schur, corr_block_Pfaffian)
+    if (corr_matrices_equal):
+        print('The correlation matrices coincide.')
+    else:
+        print('The correlation matrices do not coincide.')
+        print('Max. difference is: ' + str(np.max(np.abs(corr_block_Schur - corr_block_Pfaffian))))
+
+
+    #reshuffle correlation matrix to obtain the form Lambda = [[Lambda_{00}, Lambda_{01}, ...],[Lambda_{10}, Lambda_{11}, ...], ...], where Lambda_{ij} = [[< c_i c_j^\dagger>, <c_i c_j>], [< c_i^\dagger c_j^\dagger> ,< c_i^\dagger c_j>]].
+    corr_reshuf = reshuffle_corr_matrix(corr_block_Schur)
+
+    #store correlation matrix in hdf5 file
+    store_correlation_matrix(corr_reshuf, 'test')
+
+
 
