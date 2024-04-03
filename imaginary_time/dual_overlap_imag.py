@@ -2,7 +2,7 @@ import numpy as np
 from pfapack import pfaffian as pf #to compute the Pfaffian when evaluating the many-body wavefunction of the influence functional
 import h5py #to import the matrix B from a file and possibly stroe the propagator
 from scipy.linalg import expm
-import pandas as pd
+
 
 #_________Define fermionic cration and annihilation operators in the many-body basis
 # Note: The convention for the basis of a many-body operator A is: A = v^\dagger @ a @ v, with: v = [<0|, <0|c_up , <0|c_down, <0|c_up c_down].
