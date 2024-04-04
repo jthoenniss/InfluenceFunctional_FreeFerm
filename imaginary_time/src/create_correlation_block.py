@@ -65,6 +65,7 @@ def create_correlation_block_Pfaffian(B):
     #_______This procedure is more stable than the one above and works well even when the matrix B has many degenerate eigenvalues____
     #_______Results are equivalent to the above procedure____
 
+    dim_B = B.shape[0]
     # We want to evaluate expectation values of the form <c_a c_b^\dagger>  = <vac| e^{\sum_{ij} (B_ij)^\dagger c_i c_j} c_a c_b^\dagger e^{\sum_{ij} B_kl c_k^\dagger c_l^\dagger} |vac>
     #Combine both, B and B^\dagger, into one large matrix B_large, such that the expectation value can be written as Pfaffian of the inverse of B_large
     B_large = np.zeros((4*dim_B, 4*dim_B), dtype=np.complex_)

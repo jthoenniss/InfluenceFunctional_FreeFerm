@@ -6,6 +6,7 @@ import config as cfg
 from imag_time_compact import B_from_spec_dens
 from overlap_imag import compute_propagator_grassmann, construct_grassmann_exponential
 from dual_overlap_imag import make_first_entry_last, IF_many_body, Hamiltonian, compute_propagator
+from create_correlation_block import create_correlation_block
 
 
 #____create the exponent matrix B from the spectral density
@@ -43,6 +44,14 @@ for tau, G_up, G_down in zip(time_grid, G_up, G_down):
 #____compute the propagator by computing the many-body wavefunction of the influence functional and evaluating the overlap using the 'dual' gates that define the impurity MPO
 #bring the first leg to the last position
 B = make_first_entry_last(B)
+
+#compute the correlation matrix that corresponds to this influence functional
+corr_matrix = create_correlation_block(B) #This is the correlation matrix that is the input to the Fishman-White algorithm. 
+
+#Here, instead of computing the MPS representation, we compute the exact many-body wavefunction of the influence functional. In this case, we don't need the correlation matrix.
+#The impurity gates are the same that define the MPO. Hence, the code below can conceptually be copy-pasted with just the replacement of 
+# the many-body wavefunction IF_MB by the MPS representation of the influence functional.
+
 #Compute the many-body wavefunction of the influence functional
 IF_MB = IF_many_body(B)
 
