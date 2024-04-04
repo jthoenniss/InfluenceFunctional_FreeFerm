@@ -1,6 +1,6 @@
 import numpy as np
 from scipy import linalg
-from src.imag_time_IM_funcs import g_greater, spec_dens
+from imag_time_IM_funcs import g_greater, spec_dens
 import scipy.integrate as integrate # to solve frequency integrals when computing the propagator from the spectral density
 
 global_gamma = 1.#global energyscale -> set to 1

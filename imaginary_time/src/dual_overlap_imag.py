@@ -2,27 +2,7 @@ import numpy as np
 from pfapack import pfaffian as pf #to compute the Pfaffian when evaluating the many-body wavefunction of the influence functional
 import h5py #to import the matrix B from a file and possibly stroe the propagator
 from scipy.linalg import expm
-
-
-#_________Define fermionic cration and annihilation operators in the many-body basis
-# Note: The convention for the basis of a many-body operator A is: A = v^\dagger @ a @ v, with: v = [<0|, <0|c_up , <0|c_down, <0|c_up c_down].
-
-c_up_dag = np.zeros((4,4),dtype=np.complex_) 
-c_up_dag[1,0] = 1
-c_up_dag[3,2] = -1
-
-c_down_dag = np.zeros((4,4),dtype=np.complex_) 
-c_down_dag[2,0] = 1
-c_down_dag[3,1] = 1
-
-c_up = np.zeros((4,4),dtype=np.complex_) 
-c_up[0,1] = 1
-c_up[2,3] = -1
-
-c_down = np.zeros((4,4),dtype=np.complex_) 
-c_down[0,2] = 1
-c_down[1,3] = 1
-
+import config as cfg
 
 
 #_______Define a number of functions needed to compute the many-body wavefunction of the influence functional and the kernels of the gates.
@@ -183,10 +163,10 @@ def Hamiltonian(E_up = 0, E_down = 0, t = 0, U = 0):
     H = np.zeros((4,4),dtype=np.complex_)#define time evolution Hamiltonian
 
     #spin hopping
-    H += t * (c_up_dag @ c_down + c_down_dag @ c_up)
+    H += t * (cfg.c_up_dag @ cfg.c_down + cfg.c_down_dag @ cfg.c_up)
 
     #impurity energies and interaction
-    H += E_up * c_up_dag @ c_up + E_down * c_down_dag @ c_down + U * (c_up_dag @ c_up) @ (c_down_dag @ c_down)
+    H += E_up * cfg.c_up_dag @ cfg.c_up + E_down * cfg.c_down_dag @ cfg.c_down + U * (cfg.c_up_dag @ cfg.c_up) @ (cfg.c_down_dag @ cfg.c_down)
 
     return H
 
@@ -282,8 +262,8 @@ if __name__ == "__main__":
     time_grid = np.arange(1, dim_B//2) * delta_tau #define the time grid for printed output
 
     #Spin up:
-    G_up = compute_propagator(IF_MB=IF_MB, U_evol=U_evol, dim_B=dim_B, operator_0=c_up_dag, operator_tau=c_up)
-    G_down = compute_propagator(IF_MB=IF_MB, U_evol=U_evol, dim_B=dim_B, operator_0=c_down_dag, operator_tau=c_down)
+    G_up = compute_propagator(IF_MB=IF_MB, U_evol=U_evol, dim_B=dim_B, operator_0=cfg.c_up_dag, operator_tau=cfg.c_up)
+    G_down = compute_propagator(IF_MB=IF_MB, U_evol=U_evol, dim_B=dim_B, operator_0=cfg.c_down_dag, operator_tau=cfg.c_down)
 
     print(f"Many-body overlap propagator for parameters: E_up = {E_up}, E_down = {E_down}, t = {t}, delta_tau = {delta_tau}" )
     for tau, G_up, G_down in zip(time_grid, G_up, G_down):
