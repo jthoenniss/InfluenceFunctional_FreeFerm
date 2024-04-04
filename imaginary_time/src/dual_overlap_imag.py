@@ -27,16 +27,32 @@ c_down[1,3] = 1
 
 #_______Define a number of functions needed to compute the many-body wavefunction of the influence functional and the kernels of the gates.
 
-def make_first_entry_last(B):
-    dim_B = B.shape[0]
-    #reorder entries such that input at time zero becomes last entry:
-    B_reshuf = np.zeros((dim_B,dim_B),dtype=np.complex_)
-    B_reshuf[:dim_B-1,:dim_B-1] = B[1:dim_B,1:dim_B]
-    B_reshuf[dim_B-1,:dim_B-1] = B[0,1:dim_B]
-    B_reshuf[:dim_B-1,dim_B-1] = B[1:dim_B,0]
-    B_reshuf[dim_B-1,dim_B-1] = B[0,0]
+def make_first_entry_last(B, trotter_convention: str = 'a'):
+    """
+    Reorder the matrix B such that the ingoing variable at time zero becomes the last entry if the Trotter scheme is 'a' (= successive bath-impurity evolution).
+    For the Trotter scheme 'b' (= simultaneous impurity-bath evolution), no reordering is necessary.
+    Parameters:
+    - B (numpy.ndarray): A square numpy array representing the IF. The ordering of the variables must be in increasing order on the imaginary time contour.
+    - trotter_convention (str): The Trotter convention used for the evolution. Must be either 'a' or 'b' for successive or simultaneous evolution, respectively.
+    Returns:
+    - numpy.ndarray: A square numpy array representing the reordered matrix B.
+    """
+    if trotter_convention not in ['a', 'b']:
+        raise ValueError("Trotter convention must be either 'a' or 'b' for successive or simultaneous evolution, respectively.")
     
-    return B_reshuf
+    if trotter_convention == 'b':
+        return B
+    
+    else:
+        dim_B = B.shape[0]
+        #reorder entries such that input at time zero becomes last entry:
+        B_reshuf = np.zeros((dim_B,dim_B),dtype=np.complex_)
+        B_reshuf[:dim_B-1,:dim_B-1] = B[1:dim_B,1:dim_B]
+        B_reshuf[dim_B-1,:dim_B-1] = B[0,1:dim_B]
+        B_reshuf[:dim_B-1,dim_B-1] = B[1:dim_B,0]
+        B_reshuf[dim_B-1,dim_B-1] = B[0,0]
+        
+        return B_reshuf
 
 def IF_many_body(B):
     """
@@ -226,12 +242,13 @@ if __name__ == "__main__":
     filename = '/Users/julianthoenniss/Documents/PhD/data/B_imag_specdens_propag_GM'
     with h5py.File(filename + '.hdf5', 'r') as f:
         B_data = f['B']
-        B = B_data[:,:]
+        B = B_data[:,:] #Note: the matrix B is stored in increasing order, i.e. the first varaible is ingoing at initial time, the last variable is outgoing at final time
         dim_B = B.shape[0]
+
     
     #Make sure that the matrix B is in the correct format for the computation of the many-body wavefunction of the influence functional:
     #the ordering of the variables must be in increasing order on the imaginary time contour.
-    B = B[::-1,::-1] #we usually store the matrix B in the reverse order, such that we 're-reverse' it here.
+    
     # Moverover the ingoing variable at time zero must be moved to the last position.
     B = make_first_entry_last(B)
 
@@ -268,6 +285,7 @@ if __name__ == "__main__":
     G_up = compute_propagator(IF_MB=IF_MB, U_evol=U_evol, dim_B=dim_B, operator_0=c_up_dag, operator_tau=c_up)
     G_down = compute_propagator(IF_MB=IF_MB, U_evol=U_evol, dim_B=dim_B, operator_0=c_down_dag, operator_tau=c_down)
 
+    print(f"Many-body overlap propagator for parameters: E_up = {E_up}, E_down = {E_down}, t = {t}, delta_tau = {delta_tau}" )
     for tau, G_up, G_down in zip(time_grid, G_up, G_down):
         print(f"At tau = {np.round(tau,1)}: G_up = {G_up},  G_down = {G_down}")
 
