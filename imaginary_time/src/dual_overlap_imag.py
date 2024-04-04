@@ -195,11 +195,11 @@ def compute_propagator(IF_MB: np.ndarray, U_evol: np.ndarray, dim_B: int, operat
     Z = IF_MB @ gate_big_Z @ IF_MB
     
     G = []#store the propagator
-    #Now we can compute the propagator of the impurity model
+
+
+    #Compute the MPO from the local impurity gates. We call the tensor product of the individual gates the 'big gate'.
     for tau in range (dim_B//2-1):
-        
         gate_big = operator_to_kernel(operator_0 @U_evol, boundary = True)# Start with the final evolution operator which is combined with the operator at time 0 (which has been brought to the last position trhough cyclicity of the trace). Don't forget antiperiodic boundary conditions
-       
         for _ in range (dim_B//2-1 - tau - 1):#add the remaining evolution operators. These contain a string
             gate_big = np.kron(operator_to_kernel(U_evol, string = True),gate_big)
            
@@ -208,6 +208,7 @@ def compute_propagator(IF_MB: np.ndarray, U_evol: np.ndarray, dim_B: int, operat
         for _ in range (tau):#fill up with the remaining evolution operators up to time 0. No string here.
             gate_big = np.kron(operator_to_kernel(U_evol), gate_big)
            
+        #gate_big is now the tensor product of the individual gates.
         #compute the propagator as the overlap of the many-body wavefunction of the influence functional with the gate
         G.append(IF_MB @ gate_big @ IF_MB)
 
