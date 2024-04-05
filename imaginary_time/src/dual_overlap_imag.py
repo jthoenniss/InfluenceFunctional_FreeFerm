@@ -183,7 +183,7 @@ def compute_propagator(IF_MB: np.ndarray, U_evol: np.ndarray, dim_B: int, operat
     - operator_tau (numpy.ndarray): A (4x4) numpy array representing the operator at time tau. Expected to be odd in Grassmann variables, e.g a creation/anihilation operator. Otherwise strings below should be adapted
 
     Returns:
-    - tuple(numpy.ndarray): A tuple of vectors of complex numbers representing the propagator of the impurity model for both spin species, <c_up(tau) c_up^\dagger(0)>.
+    - numpy.ndarray: A vector representing the propagator of the impurity model, <operator_tau(tau) operator_0(0)>.
     """
     
     # partition sum (needed for normalization)
