@@ -171,14 +171,14 @@ def Hamiltonian(E_up = 0, E_down = 0, t = 0, U = 0):
     return H
 
 
-def compute_propagator(IF_MB: np.ndarray, U_evol: np.ndarray, dim_B: int, operator_0, operator_tau) -> np.ndarray:
+def compute_propagator(IF_MB: np.ndarray, U_evol: np.ndarray, nbr_steps: int, operator_0, operator_tau) -> np.ndarray:
     """
     Compute the propagator of the impurity model based on the many-body wavefunction of the influence functional and the time-evolution operator of the impurity model.
 
     Parameters:
     - IF_MB (numpy.ndarray): An array of complex numbers representing the many-body wavefunction of the influence functional.
     - U_evol (numpy.ndarray): A (4x4) numpy array representing the 'dual' and 'sign-adjusted' time-evolution operator defined by the impurity Hamiltonian.
-    - dim_B (int): The number of variables in the influence functional.
+    - nbr_steps (int): The number of time steps in the influence functional.
     - operator_0 (numpy.ndarray): A (4x4) numpy array representing the operator at time 0. Expected to be odd in Grassmann variables, e.g. a creation/anihilation operator. Otherwise strings below should be adapted
     - operator_tau (numpy.ndarray): A (4x4) numpy array representing the operator at time tau. Expected to be odd in Grassmann variables, e.g a creation/anihilation operator. Otherwise strings below should be adapted
 
@@ -189,7 +189,7 @@ def compute_propagator(IF_MB: np.ndarray, U_evol: np.ndarray, dim_B: int, operat
     # partition sum (needed for normalization)
     #create the local gate as tensor product of the evolution operator where the final gate contains antiperiodic boundary conditions
     gate_big_Z = operator_to_kernel(U_evol,boundary = True)#gate_boundary_cdag_up
-    for _ in range (dim_B//2-1):
+    for _ in range (nbr_steps-1):
         gate_big_Z = np.kron(operator_to_kernel(U_evol), gate_big_Z)
     #compute partition sum as overlap of the many-body wavefunction of the influence functional with the gate
     Z = IF_MB @ gate_big_Z @ IF_MB
@@ -198,9 +198,9 @@ def compute_propagator(IF_MB: np.ndarray, U_evol: np.ndarray, dim_B: int, operat
 
 
     #Compute the MPO from the local impurity gates. We call the tensor product of the individual gates the 'big gate'.
-    for tau in range (dim_B//2-1):
+    for tau in range (nbr_steps-1):
         gate_big = operator_to_kernel(operator_0 @U_evol, boundary = True)# Start with the final evolution operator which is combined with the operator at time 0 (which has been brought to the last position trhough cyclicity of the trace). Don't forget antiperiodic boundary conditions
-        for _ in range (dim_B//2-1 - tau - 1):#add the remaining evolution operators. These contain a string
+        for _ in range (nbr_steps-1 - tau - 1):#add the remaining evolution operators. These contain a string
             gate_big = np.kron(operator_to_kernel(U_evol, string = True),gate_big)
            
         gate_big = np.kron(operator_to_kernel(operator_tau @ U_evol, string = True),gate_big)#add the second operator at some intermediate time step. Also this gate, contains the string variable.
@@ -243,6 +243,7 @@ if __name__ == "__main__":
     E_down = 0.1
     t = 0.2
     U = 0
+    nbr_steps = dim_B//2
     #Define time step:
     delta_tau = 1.0
 
@@ -263,8 +264,8 @@ if __name__ == "__main__":
     time_grid = np.arange(1, dim_B//2) * delta_tau #define the time grid for printed output
 
     #Spin up:
-    G_up = compute_propagator(IF_MB=IF_MB, U_evol=U_evol, dim_B=dim_B, operator_0=cfg.c_up_dag, operator_tau=cfg.c_up)
-    G_down = compute_propagator(IF_MB=IF_MB, U_evol=U_evol, dim_B=dim_B, operator_0=cfg.c_down_dag, operator_tau=cfg.c_down)
+    G_up = compute_propagator(IF_MB=IF_MB, U_evol=U_evol, nbr_steps=nbr_steps, operator_0=cfg.c_up_dag, operator_tau=cfg.c_up)
+    G_down = compute_propagator(IF_MB=IF_MB, U_evol=U_evol, nbr_steps=nbr_steps, operator_0=cfg.c_down_dag, operator_tau=cfg.c_down)
 
     print(f"Many-body overlap propagator for parameters: E_up = {E_up}, E_down = {E_down}, t = {t}, delta_tau = {delta_tau}" )
     for tau, G_up, G_down in zip(time_grid, G_up, G_down):

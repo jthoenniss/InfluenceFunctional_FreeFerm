@@ -1,12 +1,12 @@
 import numpy as np
 from scipy import linalg
-from imag_time_IM_funcs import g_greater, spec_dens
+from imag_time_IM_funcs import g_greater, g_lesser, spec_dens
 import scipy.integrate as integrate # to solve frequency integrals when computing the propagator from the spectral density
 
 global_gamma = 1.#global energyscale -> set to 1
 
 
-def single_mode_GF(t_hop, beta, nbr_steps):
+def single_mode_GF(t_hop: float, beta: float, nbr_steps: int):
     """
     Compute the exact greens function for a single-mode environment with E_k = 0. 
     Computed by Fourier transforming the non-interacting impurity GF as Matsubara sum.
@@ -25,9 +25,41 @@ def single_mode_GF(t_hop, beta, nbr_steps):
     
     time_grid = np.arange(nbr_steps+1)*beta/nbr_steps
 
-    #return the array contains the Fourier transform of the non-interacting impurity GF, evaluated at the discrete time-grid points: 
+    #return the array that contains the Fourier transform of the non-interacting impurity GF, evaluated at the discrete time-grid points: 
     #tau = 0, delta, 2* delta,...,beta-delta, beta
     return gf(t_hop, time_grid, beta) 
+
+def B_from_spec_dens_single_mode(t_hop:float, beta:float, nbr_steps:int, alpha: float = 1.) -> np.ndarray:
+    """
+    Compute the exponent of the IF from the spectral density of the bath for a single-mode environment with E_k = 0.
+    If this is initialized on a fine grid, which is then coarsened by integrating out internal legs, 
+    the result is the continuous-time result and can be compared with the result from 'compute_continuous_time_IF', applied to the output from 'single_mode_GF'.
+    Parameters:
+    - t_hop: float, hopping amplitude between bath and single environment mode
+    - beta: float, inverse temperature
+    - nbr_steps: int, number of time steps from 0 to beta.
+    - alpha: float, parameter that the trotter evolution, defined as U_hyb = expm(- delta_tau * (1 - alpha) H_bath ) @ expm(- delta_tau * (H_hop + alpha H_bath)),
+
+    Returns:
+    - B_spec_dens: np.ndarray, shape=(dim_B_temp,dim_B_temp), exponent of the IF
+    """
+    dim_B_temp = 2 * nbr_steps # Size of exponent matrix in the IF.
+    delta_tau = beta / nbr_steps #time step
+
+    B_spec_dens = np.zeros((dim_B_temp,dim_B_temp),dtype=np.complex_)
+    #this block below initialized the fine IF with T_ren, which is used to benchmark our exact continuous-time solution against the previous procedure
+    #___________________for IF defined from a spectral density____________________
+    for m in range (B_spec_dens.shape[0]//2):
+        tau = m * delta_tau
+        for n in range (m+1,B_spec_dens.shape[0]//2):
+            tau_p = n * delta_tau
+            B_spec_dens[2*m, 2*n + 1] += - (-1.) * delta_tau**2 *t_hop**2* g_greater(0,beta,tau_p,tau+delta_tau* alpha)#this is the element in lowest order (delta\tau) for the single mode environment: the spectral density corresponds to a delta function at w=0
+            B_spec_dens[2*m+1, 2*n ] += - delta_tau**2*t_hop**2 *g_lesser(0,beta,tau,tau_p+delta_tau* alpha)
+        B_spec_dens[2*m, 2*m + 1] += - (-1.) * delta_tau**2*t_hop**2*g_lesser(0,beta,tau,tau+delta_tau* alpha)
+        B_spec_dens[2*m, 2*m + 1] += - 1. #constant from overlap at m=n
+    B_spec_dens -= B_spec_dens.T#antisymmetrize. This is twice the exponent matrix
+
+    return B_spec_dens
 
 
 def compute_continuous_time_IF(g: np.ndarray):
@@ -35,9 +67,9 @@ def compute_continuous_time_IF(g: np.ndarray):
     """
     The part below takes the array g[] and spits out the exponent of the IF in the continuous-time limit.
     Parameters:
-    - g: np.ndarray, shape=(nbr_steps+1), array containing the time-domain-version of the non-interacting impurity GF, evaluated at the discrete time-grid points: tau = 0, delta, 2* delta,...,beta-delta, beta
+    - g: np.ndarray, shape=(nbr_steps+1), array containing the time-domain-version of the non-interacting impurity GF, 
+        evaluated at the discrete time-grid points: tau = 0, delta, 2* delta,...,beta-delta, beta
     
-
     Returns:
     - B_spec_dens_cont: np.ndarray, shape=(2*nbr_steps,2*nbr_steps), exponent of the IF in the continuous-time limit
     """
@@ -90,13 +122,14 @@ def integrate_T_ren(B: np.ndarray, T_ren: int = 1) -> np.ndarray:
     Combines T_ren time steps into one time step by integrating out the internal legs, i.e. by effectively inserting the identity gate on the impurity.
     By choosing the initial time step very small and integrating out many legs, one can obtain the continuous-time limit of the IF for a finite number of open legs.
     Parameters:
-    - B: np.ndarray, shape=(dim_B_temp,dim_B_temp), exponent of the IF before integrating out internal legs
+    - B: np.ndarray, shape=(dim_B_temp,dim_B_temp), exponent of the IF before integrating out internal legs. The ordering of the variables is in_0, out_0, in_1, out_1, ...,in_{M-1},out_{M-1}
     - T_ren: int, number of time steps that are integrated out
 
     Returns:
-    - B: np.ndarray, shape=(dim_B,dim_B), exponent of the IF after integrating out internal legs.
+    - B_integrated: np.ndarray, shape=(dim_B,dim_B), exponent of the IF after integrating out internal legs.
     """
-    np.assert_(T_ren > 0, "T_ren must be an integer larger than 0")
+    if T_ren < 1:
+        raise ValueError("T_ren must be equal or larger than 1.")
 
     if T_ren == 1:
         return B
@@ -134,19 +167,18 @@ def integrate_T_ren(B: np.ndarray, T_ren: int = 1) -> np.ndarray:
                 B_ext[2*i+1,2*j+1] = B[2*(i+1)*T_ren-1,2*(j+1)*T_ren-1]
 
     
-        B = B_ext + B_coupl.T @ linalg.inv(B_sub) @ B_coupl #integrating out internal legs which amounts to a matrix inversion
+        B_integrated = B_ext + B_coupl.T @ linalg.inv(B_sub) @ B_coupl #integrating out internal legs which amounts to a matrix inversion
 
-        return B
+        return B_integrated
     
 
 
-def B_from_spec_dens(dim_B: int, beta:float, delta_tau: float,  int_lim_low: float, int_lim_up: float, alpha: float = 1.) -> np.ndarray:
+def B_from_spec_dens(beta:float, nbr_steps: int, int_lim_low: float, int_lim_up: float, alpha: float = 1.) -> np.ndarray:
     """
     Compute the exponent of the IF from the spectral density of the bath.
     Parameters:
-    - dim_B: int, dimension of the exponent matrix in the IF
     - beta: float, inverse temperature
-    - delta_tau: float, time step
+    - nbr_steps: int, number of time steps from 0 to beta. 
     - int_lim_low: float, lower integration limit
     - int_lim_up: float, upper integration limit
     - alpha: float, parameter that the trotter evolution, defined as U_hyb = expm(- delta_tau * (1 - alpha) H_bath ) @ expm(- delta_tau * (H_hop + alpha H_bath)), 
@@ -155,15 +187,17 @@ def B_from_spec_dens(dim_B: int, beta:float, delta_tau: float,  int_lim_low: flo
     Returns:
     - B_spec_dens: np.ndarray, shape=(dim_B,dim_B), exponent of the IF
     """
+    dim_B = 2 * nbr_steps # Size of exponent matrix in the IF.
+    delta_tau = beta / nbr_steps #time step
 
     B_spec_dens = np.zeros((dim_B,dim_B))
     #here, as an example we reproduce the example of the spectral density-result by first defining the hybridization vector:
-    hyb = np.zeros(dim_B//2)#this vector is the vector coming out of the DMFT loop with hyb[0] corresponding to tau=0, hyb[1] corresponding to tau=1, and so on 
+    hyb = np.zeros(nbr_steps)#this vector is the vector coming out of the DMFT loop with hyb[0] corresponding to tau=0, hyb[1] corresponding to tau=1, and so on 
 
     #for our example, initialize hyb[] with the bath greens function as derived in the notes
     for n in range (2):
-        hyb[n] = integrate.quad(lambda x: 1./(2*np.pi) * spec_dens(global_gamma,x) * g_greater(x,beta,(dim_B//2 + (n-1-alpha))*delta_tau, 0), int_lim_low, int_lim_up)[0]
-    for n in range (2,dim_B//2):
+        hyb[n] = integrate.quad(lambda x: 1./(2*np.pi) * spec_dens(global_gamma,x) * g_greater(x,beta,(nbr_steps + (n-1-alpha))*delta_tau, 0), int_lim_low, int_lim_up)[0]
+    for n in range (2,nbr_steps):
         hyb[n] = - integrate.quad(lambda x: 1./(2*np.pi) * spec_dens(global_gamma,x) * g_greater(x,beta,(n-1-alpha)*delta_tau, 0), int_lim_low, int_lim_up)[0]
     hyb = np.append(hyb[1:],-hyb[0])#reshuffle first element to last position with negative sign, such that matrix an be initialized easier
 
@@ -178,70 +212,69 @@ def B_from_spec_dens(dim_B: int, beta:float, delta_tau: float,  int_lim_low: flo
     return B_spec_dens
 
 
-def convert_to_simultaneous_evol_scheme(B):
+def convert_to_simultaneous_evol_scheme(B: np.ndarray) -> np.ndarray:
     """
     Converts the exponent matrix B to the simultaenous evolution scheme. 
     Parameters:
     - B: np.ndarray, shape=(dim_B,dim_B), exponent of the IF in the successive evolution scheme. B must be ordered in the convention with ordering: in_0, out_0, in_1, out_1, ...,in_{M-1},out_{M-1}
 
     Returns:
-    - B: np.ndarray, shape=(dim_B,dim_B), exponent of the IF in the simultaneous evolution scheme. B is still ordered in the convention with ordering: in_0, in_1, ...,in_{M-1}, out_0, out_1, ...,out_{M-1}
+    - B_sim: np.ndarray, shape=(dim_B,dim_B), exponent of the IF in the simultaneous evolution scheme. B is still ordered in the convention with ordering: in_0, in_1, ...,in_{M-1}, out_0, out_1, ...,out_{M-1}
     """
-
-
+    B_sim = B.copy()
     #remove overlap, it will be included in the impurity gates
-    for m in range(B.shape[0]//2):
-        B[2*m, 2*m + 1] -= - 1. #constant from overlap at m=n
-        B[2*m+1, 2*m] -= + 1. #constant from overlap at m=n
+    for m in range(B_sim.shape[0]//2):
+        B_sim[2*m, 2*m + 1] -= - 1. #constant from overlap at m=n
+        B_sim[2*m+1, 2*m] -= + 1. #constant from overlap at m=n
 
     #account for changes in signs which are introduced in order to keep the impurity gates unchanged for both cases, a and b: change sign of all entries that have one conjugate variable 
-    for i in range (B.shape[0]):
-        B[i,(i+1)%2:B.shape[0]:2] *= -1 
+    for i in range (B_sim.shape[0]):
+        B_sim[i,(i+1)%2:B_sim.shape[0]:2] *= -1 
     
-    B[B.shape[0]-1, :] *= - 1. #antiperiodic b.c.
-    B[:,B.shape[0]-1] *= - 1. #antiperiodic b.c.
+    B_sim[B_sim.shape[0]-1, :] *= - 1. #antiperiodic b.c.
+    B_sim[:,B_sim.shape[0]-1] *= - 1. #antiperiodic b.c.
 
     #identity measure for cont. time prescription
-    id_meas = np.zeros(B.shape,dtype=np.complex_)
-    for m in range(B.shape[0]//2-1):
+    id_meas = np.zeros(B_sim.shape,dtype=np.complex_)
+    for m in range(B_sim.shape[0]//2-1):
         id_meas[2*m+1 , 2*(m+1)] += 1. 
-    id_meas[0,B.shape[0]-1] -= 1. 
+    id_meas[0,B_sim.shape[0]-1] -= 1. 
 
     id_meas -= id_meas.T
-    B += id_meas
-    B = linalg.inv(B)#invert the matrix. The result B on the left side defines the IF and corresponds to the matrix A^{-1} from the DMFT guide
+    B_sim += id_meas
+    B_sim = linalg.inv(B_sim)#invert the matrix. The result B on the left side defines the IF and corresponds to the matrix A^{-1} from the DMFT guide
 
-
+    return B_sim
 
 
 if __name__ == "__main__":
 
     
     global_gamma = 1.#global energyscale -> set to 1 
-    beta = 20/global_gamma# here, twice the value than Benedikt (?)
+    beta = 4./global_gamma# here, twice the value than Benedikt (?)
     Gamma = 1.
 
-
-
-    nbr_steps =8#this is the number of Floquet steps that are performed on the level of MPS
-    #T_ren =100#this is the number of "substeps" into which one time-step of the environment evolution is subdivided. The result becomes the exact continuous-time result when this parameters is large. This is only meaningful for method "a", i.e. for successive environment-impurity evolution
-
-    #dim_B = 2 * nbr_steps # Size of exponent matrix in the IF. The variable dim_B is equal to 2*nbr_Floquet_layers
-    #dim_B_temp = dim_B * T_ren
-    #delta_tau = beta / (dim_B_temp/2 )#timestep
-
-    #into this array, insert the Fourier transform of the non-interacting impurity GF, evaluated at the discrete time-grid points: tau = 0, delta, 2* delta,...,beta-delta, beta
-    g = np.zeros((nbr_steps+1),dtype=np.complex_)
-
-
-    # here (as an example) initialized with the analytical non-interacting GF gf() for the single-mode environment with E_k = 0.
+    nbr_steps =40#this is the number of time steps contained in the influence functional.
+    
+    
+    #compute the single-mode GF in two different way:
+    #____1) initialized with the analytical non-interacting Green's function for the single-mode environment with E_k = 0.
     t_hop = np.sqrt(0.8)#hopping amplitude between bath and single environment mode
     g = single_mode_GF(t_hop=t_hop,beta = beta,nbr_steps=nbr_steps)
-
+    #compute continous time IF from the single-mode GF
     B_spec_dens_cont = compute_continuous_time_IF(g)
 
+    #___2) compute the IF from the spectral density for a single mode. Choose a time grid with T_ren * nbr_steps points, where we will then integrate out internal legs to obtain the continuous-time result
     
+    for T_ren in [10,20,50]:#T_ren is the number of time steps that are integrated out per step.
+        B_spec_dens = B_from_spec_dens_single_mode(t_hop=t_hop, beta = beta, nbr_steps = T_ren * nbr_steps, alpha = 1.)
+        #integrate out the internal legs
+        B_spec_dens = integrate_T_ren(B_spec_dens, T_ren = T_ren)
 
-
+        #compare the two results
+        print(f"Difference between continuous-time IF from single-mode GF and IF from spectral density for a single mode.") 
+        print(f"for T_ren = {T_ren}: ", np.max(np.abs(B_spec_dens_cont - B_spec_dens)))
+    
+  
     
     
