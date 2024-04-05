@@ -140,7 +140,7 @@ def operator_to_kernel(gate_coeffs: np.ndarray, string: bool = False, boundary: 
    
     return kernel
 
-def Hamiltonian(E_up = 0, E_down = 0, t = 0, U = 0):
+def Hamiltonian(E_up:float = 0, E_down:float = 0, t:float = 0, U:float = 0):
     """
     Construct the Hamiltonian that describes the local (interacting) impurity dynamics.
 
