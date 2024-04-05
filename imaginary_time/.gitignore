@@ -163,5 +163,4 @@ cython_debug/
 #hdf5 files
 *.hdf5
 
-#pdf files
-*.pdf
+
