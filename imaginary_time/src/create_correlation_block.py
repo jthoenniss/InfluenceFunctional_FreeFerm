@@ -163,7 +163,7 @@ if __name__ == "__main__":
     corr_reshuf = reshuffle_corr_matrix(corr_block_Pfaffian)
 
     #store correlation matrix in hdf5 file
-    store_correlation_matrix(corr_reshuf, 'test')
+    store_correlation_matrix(corr_reshuf, '../data/test')
 
 
 
