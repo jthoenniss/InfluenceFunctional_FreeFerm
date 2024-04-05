@@ -1,6 +1,5 @@
 import numpy as np
 import h5py
-import pandas as pd
 from pfapack import pfaffian as pf
 from scipy import linalg
 
@@ -90,10 +89,10 @@ def create_correlation_block_Pfaffian(B):
     #Here, no change of basis is necessary as the Pfaffians are directly evaluated in the original basis
     for i in range (dim_B):
         for j in range (dim_B):
-            corr_pfaff[i,j] +=   0.5 *pf.pfaffian(np.array(pd.DataFrame(B_large_inv.T).iloc[[i+2*dim_B,j+dim_B], [i+2*dim_B,j+dim_B]]))
-            corr_pfaff[i+dim_B,j+dim_B] +=  0.5 *pf.pfaffian(np.array(pd.DataFrame(B_large_inv.T).iloc[[i+dim_B,j+2*dim_B], [i+dim_B,j+2*dim_B]]))
-            corr_pfaff[i,j+dim_B] +=  0.5 *pf.pfaffian(np.array(pd.DataFrame(B_large_inv.T).iloc[[i+2*dim_B,j+2*dim_B], [i+2*dim_B,j+2*dim_B]]))
-            corr_pfaff[i+dim_B,j] +=  0.5 *pf.pfaffian(np.array(pd.DataFrame(B_large_inv.T).iloc[[i+dim_B,j+dim_B], [i+dim_B,j+dim_B]]))
+            corr_pfaff[i,j] +=   0.5 *pf.pfaffian(B_large_inv.T[np.ix_([i+2*dim_B,j+dim_B], [i+2*dim_B,j+dim_B])])
+            corr_pfaff[i+dim_B,j+dim_B] +=  0.5 *pf.pfaffian(B_large_inv.T[np.ix_([i+dim_B,j+2*dim_B], [i+dim_B,j+2*dim_B])])
+            corr_pfaff[i,j+dim_B] +=  0.5 *pf.pfaffian(B_large_inv.T[np.ix_([i+2*dim_B,j+2*dim_B], [i+2*dim_B,j+2*dim_B])])
+            corr_pfaff[i+dim_B,j] +=  0.5 *pf.pfaffian(B_large_inv.T[np.ix_([i+dim_B,j+dim_B], [i+dim_B,j+dim_B])])
 
     corr_block_back_rotated = corr_pfaff # assign to new variable in order to highlight relationship to the Schur method above. No change of basis necessary here.
     
