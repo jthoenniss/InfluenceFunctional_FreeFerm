@@ -16,7 +16,8 @@ def single_mode_GF(t_hop, beta, nbr_steps):
     - nbr_steps: int, number of steps for the Fourier transformation
 
     Returns:
-    - g: np.ndarray, shape=(nbr_steps+1), array containing the time-domain-version of the non-interacting impurity GF, evaluated at the discrete time-grid points: tau = 0, delta, 2* delta,...,beta-delta, beta
+    - g: np.ndarray, shape=(nbr_steps+1), array containing the time-domain-version of the non-interacting impurity GF, 
+            evaluated at the discrete time-grid points: tau = 0, delta, 2* delta,...,beta-delta, beta
     """
     def gf(t_hop, tau, beta):
         #analytical solution of non-interacting greens function for single-mode environment with E_k = 0
@@ -24,8 +25,8 @@ def single_mode_GF(t_hop, beta, nbr_steps):
     
     #this array contains the Fourier transform of the non-interacting impurity GF, evaluated at the discrete time-grid points: 
     #tau = 0, delta, 2* delta,...,beta-delta, beta
-
-    g = np.array([gf(t_hop, i*beta/nbr_steps, beta) for i in range(nbr_steps+1)])
+    time_grid = np.arange(nbr_steps+1)*beta/nbr_steps
+    g = gf(t_hop, time_grid, beta) 
 
     return g
 
