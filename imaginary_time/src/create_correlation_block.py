@@ -160,7 +160,7 @@ if __name__ == "__main__":
 
 
     #reshuffle correlation matrix to obtain the form Lambda = [[Lambda_{00}, Lambda_{01}, ...],[Lambda_{10}, Lambda_{11}, ...], ...], where Lambda_{ij} = [[< c_i c_j^\dagger>, <c_i c_j>], [< c_i^\dagger c_j^\dagger> ,< c_i^\dagger c_j>]].
-    corr_reshuf = reshuffle_corr_matrix(corr_block_Schur)
+    corr_reshuf = reshuffle_corr_matrix(corr_block_Pfaffian)
 
     #store correlation matrix in hdf5 file
     store_correlation_matrix(corr_reshuf, 'test')
