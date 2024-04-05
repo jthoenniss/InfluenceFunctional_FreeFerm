@@ -6,10 +6,28 @@ import scipy.integrate as integrate # to solve frequency integrals when computin
 global_gamma = 1.#global energyscale -> set to 1
 
 
-def single_mode_GF(t_hop,tau):
-    #Compute the exact greens function for a single-mode environment with E_k = 0. Computed by Fourier transforming the non-interacting impurity GF as Matsubara sum.
-    return -(np.exp(-t_hop * tau)/2 + np.sinh(t_hop * tau)*1/(1+np.exp(t_hop * beta)))#analytical solution of non-interacting greens function for single-mode environment with E_k = 0
+def single_mode_GF(t_hop, beta, nbr_steps):
+    """
+    Compute the exact greens function for a single-mode environment with E_k = 0. 
+    Computed by Fourier transforming the non-interacting impurity GF as Matsubara sum.
+    Parameters:
+    - t_hop: float, hopping amplitude between bath and single environment mode
+    - beta: float, inverse temperature
+    - nbr_steps: int, number of steps for the Fourier transformation
 
+    Returns:
+    - g: np.ndarray, shape=(nbr_steps+1), array containing the time-domain-version of the non-interacting impurity GF, evaluated at the discrete time-grid points: tau = 0, delta, 2* delta,...,beta-delta, beta
+    """
+    def gf(t_hop, tau, beta):
+        #analytical solution of non-interacting greens function for single-mode environment with E_k = 0
+        return -(np.exp(-t_hop * tau)/2 + np.sinh(t_hop * tau)*1/(1+np.exp(t_hop * beta)))
+    
+    #this array contains the Fourier transform of the non-interacting impurity GF, evaluated at the discrete time-grid points: 
+    #tau = 0, delta, 2* delta,...,beta-delta, beta
+
+    g = np.array([gf(t_hop, i*beta/nbr_steps, beta) for i in range(nbr_steps+1)])
+
+    return g
 
 
 def compute_continuous_time_IF(g: np.ndarray):
@@ -218,10 +236,11 @@ if __name__ == "__main__":
 
     # here (as an example) initialized with the analytical non-interacting GF gf() for the single-mode environment with E_k = 0.
     t_hop = np.sqrt(0.8)#hopping amplitude between bath and single environment mode
-    for i in range (nbr_steps+1):
-        g[i] = single_mode_GF(t_hop, i*beta/nbr_steps) 
+    g = single_mode_GF(t_hop=t_hop,beta = beta,nbr_steps=nbr_steps)
+
     B_spec_dens_cont = compute_continuous_time_IF(g)
 
+    
 
 
     
