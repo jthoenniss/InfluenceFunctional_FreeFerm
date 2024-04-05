@@ -23,12 +23,11 @@ def single_mode_GF(t_hop, beta, nbr_steps):
         #analytical solution of non-interacting greens function for single-mode environment with E_k = 0
         return -(np.exp(-t_hop * tau)/2 + np.sinh(t_hop * tau)*1/(1+np.exp(t_hop * beta)))
     
-    #this array contains the Fourier transform of the non-interacting impurity GF, evaluated at the discrete time-grid points: 
-    #tau = 0, delta, 2* delta,...,beta-delta, beta
     time_grid = np.arange(nbr_steps+1)*beta/nbr_steps
-    g = gf(t_hop, time_grid, beta) 
 
-    return g
+    #return the array contains the Fourier transform of the non-interacting impurity GF, evaluated at the discrete time-grid points: 
+    #tau = 0, delta, 2* delta,...,beta-delta, beta
+    return gf(t_hop, time_grid, beta) 
 
 
 def compute_continuous_time_IF(g: np.ndarray):
