@@ -1,0 +1,1 @@
+Use this folder to store and data generated. *hdf5 files are ignored by git.
