@@ -2,7 +2,7 @@ import numpy as np
 import h5py
 from scipy.linalg import expm
 
-import config as cfg
+from config import c_up_dag, c_up, c_down_dag, c_down
 from imag_time_compact import single_mode_GF, compute_continuous_time_IF, convert_to_simultaneous_evol_scheme
 from overlap_imag import compute_propagator_grassmann, construct_grassmann_exponential
 from dual_overlap_imag import make_first_entry_last, IF_many_body, Hamiltonian, compute_propagator
@@ -73,8 +73,8 @@ U_evol = U_spin_hopping @ U_Anderson #define a combined time evolution operator
 
 # ____Compute the propagator of the impurity model. Check out the function 'compute_propagator' where you see that this amount to an overlap IF_MB @ Gate @ IF_MB. 
 #Spin up
-G_up = compute_propagator(IF_MB=IF_MB, U_evol=U_evol, nbr_steps=nbr_steps, operator_0=cfg.c_up_dag, operator_tau=cfg.c_up)
-G_down = compute_propagator(IF_MB=IF_MB, U_evol=U_evol, nbr_steps=nbr_steps, operator_0=cfg.c_down_dag, operator_tau=cfg.c_down)
+G_up = compute_propagator(IF_MB=IF_MB, U_evol=U_evol, nbr_steps=nbr_steps, operator_0=c_up_dag, operator_tau=c_up)
+G_down = compute_propagator(IF_MB=IF_MB, U_evol=U_evol, nbr_steps=nbr_steps, operator_0=c_down_dag, operator_tau=c_down)
 
 print(f"Many-body overlap propagator for parameters: E_up = {E_up}, E_down = {E_down}, t = {t}, delta_tau = {delta_tau}" )
 for tau, G_up, G_down in zip(time_grid, G_up, G_down):
@@ -116,10 +116,10 @@ IF_MB_sim = IF_many_body(B_spec_dens_cont_sim)#compute the many-body wavefunctio
 Ham_trivial = Hamiltonian(E_up = E_up, E_down = E_down, t=t)
 U_evol = expm(- Ham_trivial * delta_tau)
 
-G_up = compute_propagator(IF_MB=IF_MB, U_evol=U_evol, nbr_steps=nbr_steps, operator_0=cfg.c_up_dag, operator_tau=cfg.c_up)
-G_down = compute_propagator(IF_MB=IF_MB, U_evol=U_evol, nbr_steps=nbr_steps, operator_0=cfg.c_down_dag, operator_tau=cfg.c_down)
-G_up_sim = compute_propagator(IF_MB=IF_MB_sim, U_evol=U_evol, nbr_steps=nbr_steps, operator_0=cfg.c_up_dag, operator_tau=cfg.c_up)
-G_down_sim = compute_propagator(IF_MB=IF_MB_sim, U_evol=U_evol, nbr_steps=nbr_steps, operator_0=cfg.c_down_dag, operator_tau=cfg.c_down)
+G_up = compute_propagator(IF_MB=IF_MB, U_evol=U_evol, nbr_steps=nbr_steps, operator_0=c_up_dag, operator_tau=c_up)
+G_down = compute_propagator(IF_MB=IF_MB, U_evol=U_evol, nbr_steps=nbr_steps, operator_0=c_down_dag, operator_tau=c_down)
+G_up_sim = compute_propagator(IF_MB=IF_MB_sim, U_evol=U_evol, nbr_steps=nbr_steps, operator_0=c_up_dag, operator_tau=c_up)
+G_down_sim = compute_propagator(IF_MB=IF_MB_sim, U_evol=U_evol, nbr_steps=nbr_steps, operator_0=c_down_dag, operator_tau=c_down)
 
 if np.allclose(G_up[:-1], G_up_sim[1:]) and np.allclose(G_down[:-1], G_down_sim[1:]):
         print("The MANY-BODY OVERLAP propagator is the SAME for the successive and simultaneous evolution scheme.")
@@ -129,3 +129,4 @@ else:
         print("The MANY-BODY OVERLAP propagator is DIFFERENT for the successive and simultaneous evolution scheme. Here are the spin-up components:")
         print(G_up)
         print(G_up_sim)
+
