@@ -142,7 +142,10 @@ for nbr_steps in [2,4,6]:
         #bring the first leg to the last position
         B_spec_dens_cont_reshuf = make_first_entry_last(B_spec_dens_cont)
 
-        #Compute the many-body wavefunction of the influence functional
+        #if you want to compute the MPS via FW from this, compute the correlation matrix (uncomment the line below):
+        #corr_matrix = create_correlation_block(B_spec_dens_cont_reshuf) #This is the correlation matrix that is the input to the Fishman-White algorithm. 
+
+        #Here, we compute the exact many-body wavefunction of the influence functional
         IF_MB = IF_many_body(B_spec_dens_cont_reshuf)
         #construct the MPO for a trivial impurity:
         from dual_overlap_imag import operator_to_kernel
