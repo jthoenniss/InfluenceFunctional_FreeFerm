@@ -12,8 +12,6 @@ from create_correlation_block import create_correlation_block
 #____create the exponent matrix B from the spectral density
 # Parameters
 nbr_steps = 6#number of time steps
-int_lim_low = -1#lower frequency integration limit 
-int_lim_up = 1#upper frequency integration limit
 beta = 4.#inverse temperature
 
 delta_tau = beta/nbr_steps #time step
@@ -86,15 +84,13 @@ print("\n")
 #_____Check that for a trivial impurity, the successive and simultaneous evolution give the same result
 print("For a TRIVIAL IMPURITY, E_up = E_down = t = 0.0, U = 0, check that the successive and simultaneous evolution scheme yield the same propagators:")
 # Impurity parameters
-E_up = 0.0
-E_down = 0.0
-t = 0.0
+
 #convert the continuous-time IF to the simultaneous evolution scheme
 B_spec_dens_cont_sim = convert_to_simultaneous_evol_scheme(B_spec_dens_cont)
 #compute the propagator from the continuous-time IF:
 # 1) Directly as Grassmann integral:
-exponent = construct_grassmann_exponential(B_spec_dens_cont, E_up, E_down, t, delta_tau=delta_tau, trotter_convention='a')#successive evolution, trotter_convention='a'
-exponent_sim = construct_grassmann_exponential(B_spec_dens_cont_sim, E_up, E_down, t, delta_tau=delta_tau, trotter_convention='b')#simultaneous evolution, trotter_convention='b'
+exponent = construct_grassmann_exponential(B_spec_dens_cont, E_up= 0.0, E_down= 0.0, t= 0.0, delta_tau=delta_tau, trotter_convention='a')#successive evolution, trotter_convention='a'
+exponent_sim = construct_grassmann_exponential(B_spec_dens_cont_sim, E_up= 0.0, E_down= 0.0, t= 0.0, delta_tau=delta_tau, trotter_convention='b')#simultaneous evolution, trotter_convention='b'
     
 # ____Compute the Grassmann propagator of the impurity model
 G_up, G_down = compute_propagator_grassmann(exponent, trotter_convention='a') #successive evolution
@@ -113,13 +109,13 @@ IF_MB_sim = IF_many_body(B_spec_dens_cont_sim)#compute the many-body wavefunctio
 
 #Compute the propagator of the impurity model. 
 #define evolution operator 
-Ham_trivial = Hamiltonian(E_up = E_up, E_down = E_down, t=t)
-U_evol = expm(- Ham_trivial * delta_tau)
+Ham_trivial = Hamiltonian(E_up = 0., E_down = 0., t=0.)
+U_evol_trivial = expm(- Ham_trivial * delta_tau)
 
-G_up = compute_propagator(IF_MB=IF_MB, U_evol=U_evol, nbr_steps=nbr_steps, operator_0=c_up_dag, operator_tau=c_up)
-G_down = compute_propagator(IF_MB=IF_MB, U_evol=U_evol, nbr_steps=nbr_steps, operator_0=c_down_dag, operator_tau=c_down)
-G_up_sim = compute_propagator(IF_MB=IF_MB_sim, U_evol=U_evol, nbr_steps=nbr_steps, operator_0=c_up_dag, operator_tau=c_up)
-G_down_sim = compute_propagator(IF_MB=IF_MB_sim, U_evol=U_evol, nbr_steps=nbr_steps, operator_0=c_down_dag, operator_tau=c_down)
+G_up = compute_propagator(IF_MB=IF_MB, U_evol=U_evol_trivial, nbr_steps=nbr_steps, operator_0=c_up_dag, operator_tau=c_up)
+G_down = compute_propagator(IF_MB=IF_MB, U_evol=U_evol_trivial, nbr_steps=nbr_steps, operator_0=c_down_dag, operator_tau=c_down)
+G_up_sim = compute_propagator(IF_MB=IF_MB_sim, U_evol=U_evol_trivial, nbr_steps=nbr_steps, operator_0=c_up_dag, operator_tau=c_up)
+G_down_sim = compute_propagator(IF_MB=IF_MB_sim, U_evol=U_evol_trivial, nbr_steps=nbr_steps, operator_0=c_down_dag, operator_tau=c_down)
 
 if np.allclose(G_up[:-1], G_up_sim[1:]) and np.allclose(G_down[:-1], G_down_sim[1:]):
         print("The MANY-BODY OVERLAP propagator is the SAME for the successive and simultaneous evolution scheme.")
@@ -130,3 +126,31 @@ else:
         print(G_up)
         print(G_up_sim)
 
+
+# ___ Compute the hole occupation, <c(0) c^/dagger(0)>
+# Parameters
+for nbr_steps in [2,4,6]:
+        beta = 4.#inverse temperature
+        delta_tau = beta/nbr_steps #time step
+
+        # Create exponent matrix B for single environment mode
+        t_hop = np.sqrt(0.8)#hopping amplitude between bath and single environment mode
+        g = single_mode_GF(t_hop=t_hop,beta = beta,nbr_steps=nbr_steps)
+        #compute continous time IF from the single-mode GF
+        B_spec_dens_cont = compute_continuous_time_IF(g)
+
+        #bring the first leg to the last position
+        B_spec_dens_cont_reshuf = make_first_entry_last(B_spec_dens_cont)
+
+        #Compute the many-body wavefunction of the influence functional
+        IF_MB = IF_many_body(B_spec_dens_cont_reshuf)
+        #construct the MPO for a trivial impurity:
+        from dual_overlap_imag import operator_to_kernel
+        gate_big_occup  = operator_to_kernel(c_up @ c_up_dag @  U_evol_trivial, boundary=True)
+        gate_big_Z = operator_to_kernel(U_evol_trivial, boundary=True)
+        for _ in range (nbr_steps-1):
+                gate_big_occup = np.kron(operator_to_kernel(U_evol_trivial), gate_big_occup)
+                gate_big_Z = np.kron(operator_to_kernel(U_evol_trivial), gate_big_Z)
+        #compute the hole occupation
+        Z = IF_MB @ gate_big_Z @ IF_MB
+        print(f"Hole occupation for a trivial impurity and time step delta_tau={delta_tau}: <c(0) c^/dagger(0)>= ", IF_MB @ gate_big_occup @ IF_MB /Z)
