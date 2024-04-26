@@ -131,6 +131,7 @@ dmypy.json
 
 #h5 files
 *.h5
+*.hdf5
 
 #todo list
 todo.txt
