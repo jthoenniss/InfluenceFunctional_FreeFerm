@@ -77,7 +77,6 @@ def dual_density_matrix_to_operator(dual_density_matrix: np.ndarray, step_type: 
 
     # swap the order of the variables in the outgoing space (corresponds to sign changes in corresponding rows of kernel)
     dual_density_matrix = sign_for_local_reversal(dual_density_matrix)
-
     
     # invert trafo from backward branch which is the same as forward trafo
     dual_density_matrix = transform_backward_kernel(dual_density_matrix)
