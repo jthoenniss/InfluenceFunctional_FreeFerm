@@ -4,7 +4,7 @@ import os,sys
 parent_dir = os.path.join(os.path.dirname(__file__),"../..")
 #append parent directory to path
 sys.path.append(parent_dir)
-from src.shared_modules.many_body_operator import many_body_operator, annihilation_ops
+from src.shared_modules.many_body_operator import many_body_operator, annihilation_ops, idx_sign_under_reverse
 
 
 class TestAnnihilationsOps(unittest.TestCase):
@@ -47,5 +47,88 @@ class TestAnnihilationsOps(unittest.TestCase):
 
 
         self.assertTrue(np.allclose(MB_op,MB_op_check), "The many-body operator is not computed correctly")
+
+    def test_many_body_operator_sign(self):
+
+        #create a string of annihilation operators and check that the reversed string has the correct sign        
+
+        #check 1:
+        #annihilation_string corresponding to "c_1 c_3 "
+        fermion_string = [1,0,1]
+        MB_op = many_body_operator(output_ferms=[0,0,0], input_ferms=fermion_string)
+        MB_op_reverse = many_body_operator(output_ferms=fermion_string, input_ferms=[0,0,0]).T.conj()
+        #here the sign should be +1 since there is even odd number of fermion pairs.
+        #check that the many-body operator has the correct sign
+        self.assertTrue(np.allclose(MB_op_reverse, - MB_op), f"The sign of the many-body operator is not computed correctly. Many-body operator should have the opposite sign fromthe original for reversed string. Operators are \n {MB_op} and \n{MB_op_reverse}")
+
+        #check that the conjugate and non-conjugate operator string have the correct relationship to each other
+        annihil_3 = annihilation_ops(n_ferms = 3)
+        M_op_annihils = annihil_3[0] @ annihil_3[2]
+        M_op_reverse_annihils = (annihil_3[0].T @ annihil_3[2].T).T
+        self.assertTrue(np.allclose(M_op_annihils, MB_op), f"The sign of the many-body operator is not computed correctly. Many-body operator should have the same sign as the original for reversed string. Operators are \n {M_op_annihils} and \n{MB_op}")
+        self.assertTrue(np.allclose(M_op_reverse_annihils, MB_op_reverse), f"The sign of the many-body operator is not computed correctly. Many-body operator should have the same sign as the original for reversed string. Operators are \n {M_op_reverse_annihils} and \n{MB_op_reverse}")
+        self.assertTrue(np.allclose(M_op_annihils, - M_op_reverse_annihils), f"The sign of the many-body operator is not computed correctly. Many-body operator should have the same sign as the original for reversed string. Operators are \n {M_op_annihils} and \n{M_op_reverse_annihils}")
+
+
+        #check 2: 
+        #annihilation_string corresponding to "c_2 c_3 c_4 c_5 c_7"
+        fermion_string = [0,1,1,1,1,0,1]
+        MB_op = many_body_operator(output_ferms=[0,0,0,0,0,0,0], input_ferms=fermion_string)
+        MB_op_reverse = many_body_operator(output_ferms=fermion_string, input_ferms=[0,0,0,0,0,0,0]).T.conj()
+        #here the sign should be +1 since there is even odd number of fermion pairs.
+        #check that the many-body operator has the correct sign
+        self.assertTrue(np.allclose(MB_op_reverse, MB_op), f"The sign of the many-body operator is not computed correctly. Many-body operator should have the same sign as the original for reversed string. Operators are \n {MB_op} and \n{MB_op_reverse}")
+
+
+        #check 3:
+        #annihilation_string corresponding to "c_1 c_2 c_3 c_4 c_5 c_7"
+        fermion_string = [1,1,1,1,1,0,1]
+        MB_op = many_body_operator(output_ferms=[0,0,0,0,0,0,0], input_ferms=fermion_string)
+        MB_op_reverse = many_body_operator(output_ferms=fermion_string, input_ferms=[0,0,0,0,0,0,0]).T.conj()
+        #here the sign should be -1 since there is an odd number of fermion pairs.
+        #check that the many-body operator has the correct sign
+        self.assertTrue(np.allclose(MB_op_reverse, -MB_op), "The sign of the many-body operator is not computed correctly. Many-body operator should have the opposite sign of the original for reversed string")
+
+class test_idx_signs_under_reverse(unittest.TestCase):
+     
+    def setUp(self) -> None:
+        
+        #generate the idx_signs_under_reverse for 4
+        self.idx_signs_twosite = idx_sign_under_reverse(n_ferms = 4)
+
+        self.idx_signs_seven_site = idx_sign_under_reverse(n_ferms = 7)
+    
+    def test_idx_signs_under_reverse(self):
+
+        #check the idx_signs_under_reverse for 4 sites explicitly:
+        idx_explicit = [3,5,6,7,9,10,11,12,13,14]
+        self.assertTrue(np.allclose(self.idx_signs_twosite,idx_explicit), f"The idx_signs_under_reverse is not computed correctly,\n{idx_explicit},\n{self.idx_signs_twosite}")
+
+    def test_many_body_operator_sign(self):
+
+        #create a string of annihilation operators and check that the reversed string has the correct sign        
+
+        #check 1:
+        #annihilation_string corresponding to "c_2 c_3 c_4 c_5 c_7"
+        fermion_string = [0,1,1,1,1,0,1]  
+        # Convert the array of integers to a string
+        binary_string = ''.join(str(bit) for bit in fermion_string)
+        # Convert the binary string to a decimal integer
+        decimal_integer = int(binary_string, 2)
+        #check the decmail integer is INDEED contained in the idx_signs array
+        self.assertTrue(decimal_integer not in self.idx_signs_seven_site, "The decimal integer is falsly contained in the idx_signs array")
+
+
+        #check 2:
+        #annihilation_string corresponding to "c_1 c_2 c_3 c_4 c_5 c_7"
+        fermion_string = [1,1,1,1,1,0,1]
+        # Convert the array of integers to a string
+        binary_string = ''.join(str(bit) for bit in fermion_string)
+        # Convert the binary string to a decimal integer
+        decimal_integer = int(binary_string, 2)
+        #check the decmail integer is INDEED contained in the idx_signs array
+        self.assertTrue(decimal_integer in self.idx_signs_seven_site, "The decimal integer is not contained in the idx_signs array")
+        
+
 if __name__ == "__main__":
         unittest.main()

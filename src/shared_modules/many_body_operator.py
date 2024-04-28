@@ -13,8 +13,8 @@ def many_body_operator(output_ferms: list, input_ferms: list) -> np.ndarray:
     The fermions are ordered as c_1^\dag, c_2^\dagger,..c_1, c_2,.. (increasing order).
 
     Parameters:
-    - output_ferms (list): List containing the indices of the fermionic operators in the output state in increasing order
-    - input_ferms (list): List containing the indices of the fermionic operators in the input state in increasing order.
+    - output_ferms (list or np.ndarray): List containing the indices of the fermionic operators in the output state in increasing order
+    - input_ferms (list or np.ndarray): List containing the indices of the fermionic operators in the input state in increasing order.
 
     Returns:
     - np.ndarray: The many-body gate representing the operator.
@@ -57,6 +57,10 @@ def many_body_operator(output_ferms: list, input_ferms: list) -> np.ndarray:
     In the notes for imaginary time, c_1 = c_down and c_2 = c_up.
     """
 
+    #if input and output fermion are lists, convert to numpy arrays to allow for advanced indexing:
+    output_ferms = np.array(output_ferms)
+    input_ferms = np.array(input_ferms)
+
     # Determine the number of fermions in the system
     n_ferms = len(output_ferms)
     dim = 2**n_ferms #dimension of local Hilbert space
@@ -78,9 +82,6 @@ def many_body_operator(output_ferms: list, input_ferms: list) -> np.ndarray:
         sign = 1
 
         # determine the sign that we get by ordering all output space variables (daggered) correctly (*** a)
-        #sign_changes = (-1) ** np.cumsum(output_ferms[::-1])[::-1] #array of minus signs that we pick up when moving the fermions to the right
-        #sign *= np.prod(sign_changes[state_bin == 1])
-
         sign_changes = (-1) ** np.cumsum(state_bin) #array of minus signs that we pick up when moving the output_ferms to the right into the string or state
         sign *= np.prod(sign_changes[output_ferms == 1])
 
@@ -141,17 +142,18 @@ def annihilation_ops(n_ferms: int) -> list:
 
 def idx_sign_under_reverse(n_ferms: int) -> list:
     """
-    Determine the indices of many-body basis state which change sign under reversal of the order of the fermions.
+    Determine the indices of many-body basis states which change sign under reversal of the order of the fermions.
+    These are all states which contain an odd number of fermions pairs (and/or one an additional fermion).
     Parameters:
     - n_ferms (int): The number of fermions in the system.
 
     Returns:
     - list: A list of indices of many-body basis states which change sign under reversal of the order of the fermions.
     """
-    #generate binary representations of all states
-    bin_reps = [np.binary_repr(i).zfill(n_ferms) for i in range (2**n_ferms)]
-    #return list of indices corresponding to the states that flip sign under reversal
-    return [i for i,b in enumerate(bin_reps) if (b.count('1')//2)%2 == 1]
+    
+    return [i for i in range(2**n_ferms) if (bin(i).count('1')//2)%2 == 1]
+    
+
 
 def indices_odd_and_even(n_ferms: int) -> Tuple[List[int], List[int]]:
     """
@@ -198,11 +200,28 @@ def fermion_parity(operator: np.ndarray) -> int:
 
 if __name__ == "__main__":
 
-    annihilation_ops_twosite = annihilation_ops(n_ferms = 2)
+    """annihilation_ops_twosite = annihilation_ops(n_ferms = 2)
     print("The annihilation operators for 2 sites are:")
     print("c_1 = ")
     print(annihilation_ops_twosite[0])
     print("c_2 = ")
     print(annihilation_ops_twosite[1])
 
-    
+    #Test index_signs_under_reverse for 4 sites
+    idx_signs_foursite = idx_sign_under_reverse(n_ferms = 4)
+    print("The idx_signs_under_reverse for 4 sites are:")
+    print(idx_signs_foursite)
+
+    #Test index_signs_under_reverse for 2  sites
+    idx_signs_twosite = idx_sign_under_reverse(n_ferms = 2)
+    print("The idx_signs_under_reverse for 2 sites are:")
+    print(idx_signs_twosite)
+
+    print([i for i in range(2**4) if (bin(i).count('1')//2)%2 == 1])
+"""
+
+    #op1 = many_body_operator([1,0,1], [0,0,0])
+
+
+
+    #print(op1)
