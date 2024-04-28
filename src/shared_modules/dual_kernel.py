@@ -4,11 +4,7 @@ This is needed for single-orbital problems in real and imaginary time.
 """
 
 import numpy as np
-#add parent directory to path
-import os,sys
-parent_dir = os.path.join(os.path.dirname(__file__),"..")
-sys.path.append(parent_dir)
-from src.shared_modules.many_body_operator import indices_odd_and_even, idx_sign_under_reverse
+from .many_body_operator import indices_odd_and_even, idx_sign_under_reverse
 
 
 def transform_backward_kernel(kernel: np.ndarray) -> np.ndarray:
@@ -332,50 +328,3 @@ def operator_to_kernel(gate_coeffs: np.ndarray, string: bool = False, branch = '
    
     return kernel_dual
 
-
-
-def dual_density_matrix_to_operator(dual_density_matrix: np.ndarray, step_type: str = 'full') -> np.ndarray:
-    """
-    Converts the 'dual' (and sign-adjusted) kernel of the a density matrix of the corresponding operator in the fermionic basis.
-
-    Parameters:
-    - dual_density_matrix (np.ndarray): A 4x4 matrix representing the 'dual' kernel of the density matrix.
-    - step_type (str): The type of time step that is used. Must be set to 'full' or 'half'.
-
-    Returns:
-    - np.ndarray: The matrix of the corresponding operator in the fermionic basis.
-    """
-    # undo factors of imaginary i
-    dual_density_matrix = inverse_imaginary_i_for_global_reversal(dual_density_matrix)
-
-    # swap the order of the variables in the outgoing space (corresponds to sign changes in corresponding rows of kernel)
-    dual_density_matrix = sign_for_local_reversal(dual_density_matrix)
-
-    
-    # invert trafo from backward branch which is the same as forward trafo
-    dual_density_matrix = transform_backward_kernel(dual_density_matrix)
-
-    # apply inverse of 'overlap_signs' to the kernel which is the same as forward trafo
-    dual_density_matrix = overlap_signs(dual_density_matrix)
-
-    # apply inverse of 'dual_kernel' to the kernel
-    density_matrix = inverse_dual_kernel(dual_density_matrix)
-
-    return density_matrix
-
-
-if __name__ == "__main__":
-
-    #set up a random 4x4 density matrix
-    density_matrix = np.random.rand(4,4)
-
-    #compute the dual density matrix
-    dual_density_matrix = operator_to_kernel(density_matrix, branch='b')
-
-    #transform the dual density matrix back to the density matrix 
-    density_matrix_recover = dual_density_matrix_to_operator(dual_density_matrix=dual_density_matrix)
-
-    #check if it is the same as the original density matrix
-    print("recovered DM: \n", np.real(density_matrix_recover))
-    print("original DM: \n", density_matrix)
-    print(np.allclose(density_matrix_recover, density_matrix))
