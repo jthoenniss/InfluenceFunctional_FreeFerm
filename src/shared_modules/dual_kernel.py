@@ -167,23 +167,23 @@ def overlap_signs(kernel_dual: np.ndarray) -> np.ndarray:
     return kernel_dual
 
 
-def imaginary_i_for_global_reversal(kernel_dual: np.ndarray) -> np.ndarray:
+def imaginary_i_for_global_reversal(kernel: np.ndarray) -> np.ndarray:
     """
     Adjust the kernel by the factors of imaginary i needed to determine the sign associated with 
     the reversal of a global string. This function uses vectorized operations for efficiency.
 
     Parameters:
-    - kernel_dual (np.ndarray): A matrix kernel.
+    - kernel (np.ndarray): A matrix kernel.
 
     Returns:
     - np.ndarray: The adjusted kernel, with each row multiplied by (1j)**n, where n is the
       number of 1's in the binary representation of the row index.
     """
     # Ensure the array is of a complex type to handle complex operations
-    kernel_dual = kernel_dual.astype(np.complex128)
+    kernel = kernel.astype(np.complex128)
     
     # Number of rows in the kernel
-    dim_kernel = kernel_dual.shape[0]
+    dim_kernel = kernel.shape[0]
 
     # Pre-compute the power of 1.j for each row index
     # Create an array of row indices
@@ -197,76 +197,76 @@ def imaginary_i_for_global_reversal(kernel_dual: np.ndarray) -> np.ndarray:
     factors = (1.j) ** bit_counts
 
     # Apply the computed factors to each row
-    kernel_dual *= factors[:, np.newaxis]  # Make factors a column vector to broadcast along rows
+    kernel *= factors[:, np.newaxis]  # Make factors a column vector to broadcast along rows
 
-    return kernel_dual
+    return kernel
 
-def inverse_imaginary_i_for_global_reversal(kernel_dual: np.ndarray) -> np.ndarray:
+def inverse_imaginary_i_for_global_reversal(kernel: np.ndarray) -> np.ndarray:
     """
     Inverse operation of the function 'imaginary_i_for_global_reversal'.
     This is achieved by a triple application of the function 'imaginary_i_for_global_reversal'.
 
     Parameters:
-    - kernel_dual (np.ndarray): A matrix kernel.
+    - kernel (np.ndarray): A matrix kernel.
 
     Returns:
     - np.ndarray: The adjusted kernel.
     """
 
     # Ensure the array is of a complex type to handle complex operations
-    kernel_dual = kernel_dual.astype(np.complex128)
+    kernel = kernel.astype(np.complex128)
     
     # Apply imaginary_i_for_global_reversal to the kernel three times
     for _ in range(3):
-        kernel_dual = imaginary_i_for_global_reversal(kernel_dual)
+        kernel = imaginary_i_for_global_reversal(kernel)
 
-    return kernel_dual
+    return kernel
 
 
 
-def string_in_kernel(kernel_dual: np.ndarray) -> np.ndarray:
+def string_in_kernel(kernel: np.ndarray) -> np.ndarray:
     """
     Adjust the kernel by the signs that result from a fermionic Jordan-Wigner string.
     For this, one needs to determine all row indices of the kernel that contain an odd number of Grassmann variables.
 
     Parameters:
-    - kernel_dual (np.ndarray): A matrix representing the kernel.
+    - kernel (np.ndarray): A matrix representing the kernel.
 
     Returns:
     - np.ndarray: The adjusted dual kernel.
     """ 
     #log with basis 2
-    n_ferms = np.log2(kernel_dual.shape[0]).astype(int)
+    n_ferms = np.log2(kernel.shape[0]).astype(int)
 
     #determine indices of rows with odd number of fermionic variables
     indices_odd, _ = indices_odd_and_even(n_ferms)
 
     #multiply the rows with odd number of fermionic variables with -1
-    kernel_dual[indices_odd,:] *= -1
+    kernel[indices_odd,:] *= -1
 
-    return kernel_dual
+    return kernel
 
 
-def sign_for_local_reversal(kernel_dual: np.ndarray) -> np.ndarray:
+def sign_for_local_reversal(kernel: np.ndarray) -> np.ndarray:
     """
     Adjust the kernel by the factors of -1 needed to reverse the outgoing Grassmann variables for a local gate.
 
     Parameters:
-    - kernel_dual (np.ndarray): A matrix kernel.
+    - kernel (np.ndarray): A matrix kernel.
 
     Returns:
     - np.ndarray: The adjusted dual kernel, with each row that changes sign under local reversal multiplied by -1.
     """
     #number of Grassmann variables
-    nbr_ferms = np.log2(kernel_dual.shape[0]).astype(int)
+    nbr_ferms = np.log2(kernel.shape[0]).astype(int)
 
     #determine the indices of the rows that change sign under local reversal
     indices_sign_change = idx_sign_under_reverse(nbr_ferms)
 
     #multiply the rows that change sign under local reversal with -1
-    kernel_dual[indices_sign_change,:] *= -1
+    kernel[indices_sign_change,:] *= -1
 
-    return kernel_dual
+    return kernel
     
     
 
