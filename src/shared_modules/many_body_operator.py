@@ -200,7 +200,7 @@ def fermion_parity(operator: np.ndarray) -> int:
 
 if __name__ == "__main__":
 
-    """annihilation_ops_twosite = annihilation_ops(n_ferms = 2)
+    annihilation_ops_twosite = annihilation_ops(n_ferms = 2)
     print("The annihilation operators for 2 sites are:")
     print("c_1 = ")
     print(annihilation_ops_twosite[0])
@@ -218,10 +218,3 @@ if __name__ == "__main__":
     print(idx_signs_twosite)
 
     print([i for i in range(2**4) if (bin(i).count('1')//2)%2 == 1])
-"""
-
-    #op1 = many_body_operator([1,0,1], [0,0,0])
-
-
-
-    #print(op1)
