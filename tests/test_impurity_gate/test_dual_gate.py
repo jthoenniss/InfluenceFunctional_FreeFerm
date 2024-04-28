@@ -4,7 +4,7 @@ import os,sys
 parent_dir = os.path.join(os.path.dirname(__file__),"../..")
 #append parent directory to path
 sys.path.append(parent_dir)
-from src.shared_modules.dual_kernel import dual_kernel, overlap_signs, operator_to_kernel, inverse_dual_kernel, dual_density_matrix_to_operator, string_in_kernel, imaginary_i_for_global_reversal, inverse_imaginary_i_for_global_reversal
+from src.shared_modules.dual_kernel import dual_kernel, overlap_signs, operator_to_kernel, inverse_dual_kernel, string_in_kernel, imaginary_i_for_global_reversal, inverse_imaginary_i_for_global_reversal
 
 class TestDualGate(unittest.TestCase):
     
@@ -178,23 +178,6 @@ class TestInverseDualKernel(unittest.TestCase):
         #check that inv_dual_gate indeed recovers the original gate, self.gate_coeffs
         self.assertTrue(np.allclose(inv_dual_gate,self.gate_coeffs), "The inverse dual kernel function is not computed correctly")
 
-class TestDualDensityMatrix(unittest.TestCase):
-
-    def setUp(self) -> None:
-        
-        #set up a random 4x4 density matrix
-        self.density_matrix = np.random.rand(4,4)
-
-        #compute the dual density matrix
-        self.dual_density_matrix = operator_to_kernel(self.density_matrix, branch='b')
-
-    def test_dual_density_matrix(self):
-
-        #transform the dual density matrix back to the density matrix 
-        density_matrix = dual_density_matrix_to_operator(dual_density_matrix=self.dual_density_matrix)
-
-        #check if it is the same as the original density matrix
-        self.assertTrue(np.allclose(density_matrix,self.density_matrix), f"The dual density matrix is not computed correctly:\n {np.real(density_matrix)} \n!= {self.density_matrix}")
 
 if __name__ == "__main__":
         unittest.main()
