@@ -4,6 +4,11 @@ This is needed for single-orbital problems in real and imaginary time.
 """
 
 import numpy as np
+#add parent directory to path
+import os,sys
+parent_dir = os.path.join(os.path.dirname(__file__),"..")
+sys.path.append(parent_dir)
+from src.shared_modules.many_body_operator import indices_odd_and_even
 
 
 def transform_backward_kernel(kernel: np.ndarray) -> np.ndarray:
@@ -90,11 +95,60 @@ def dual_kernel(gate_coeffs: np.ndarray) -> np.ndarray:
     return kernel_dual
 
 
+def inverse_dual_kernel(kernel_dual: np.ndarray) -> np.ndarray:
+    """
+    Performs the inverse of the function 'dual_kernel'.
+    Typically used to transfrom a dual kernel back to the original gate in the fermionic many-body basis.
+
+    This is the inverse operation of the transformation:
+    [[a00, a01, a02, a03],
+     [a10, a11, a12, a13],
+     [a20, a21, a22, a23],
+     [a30, a31, a32, a33]] <- [[a00, a10, a01, a11],
+                               [a20, a30, a21, a31],
+                               [a02, -a12, -a03, a13],
+                               [a22, -a32, -a23, a33]].
+
+    Parameters:
+    - kernel_dual (np.ndarray): A 4x4 matrix representing the dual kernel.
+
+    Returns:
+    - np.ndarray: The inverse of the 'dual_kernel' function applied to the kernel. 
+                    If the input is a valid dual kernel, the result is the original fermionic gate.
+    """
+    #check size of input
+    assert kernel_dual.shape == (4,4), "The input must be a 4x4 matrix."
+
+    gate_coeffs = np.zeros((4, 4), dtype=np.complex_)
+
+    # Reconstruct the original matrix
+    gate_coeffs[0, 0] = kernel_dual[0, 0]
+    gate_coeffs[1, 0] = kernel_dual[0, 1]
+    gate_coeffs[0, 1] = kernel_dual[0, 2]
+    gate_coeffs[1, 1] = kernel_dual[0, 3]
+    gate_coeffs[2, 0] = kernel_dual[1, 0]
+    gate_coeffs[3, 0] = kernel_dual[1, 1]
+    gate_coeffs[2, 1] = kernel_dual[1, 2]
+    gate_coeffs[3, 1] = kernel_dual[1, 3]
+    gate_coeffs[0, 2] = kernel_dual[2, 0]
+    gate_coeffs[1, 2] = -kernel_dual[2, 1]
+    gate_coeffs[0, 3] = -kernel_dual[2, 2]
+    gate_coeffs[1, 3] = kernel_dual[2, 3]
+    gate_coeffs[2, 2] = kernel_dual[3, 0]
+    gate_coeffs[3, 2] = -kernel_dual[3, 1]
+    gate_coeffs[2, 3] = -kernel_dual[3, 2]
+    gate_coeffs[3, 3] = kernel_dual[3, 3]
+
+    return gate_coeffs
+
+
+
 def overlap_signs(kernel_dual: np.ndarray) -> np.ndarray:
 
     """
     Adjust the DUAL kernel by the signs that result from bringing the path integral into overlap form.
-    This alters the signs of all entires in the rows with indices 2 and 3 and all entries in the columns with indices 1 and 3.
+    Valid for single-orbital problems in real and imaginary time.
+    This alters the signs of all entries in the rows with indices 2 and 3 and all entries in the columns with indices 1 and 3.
 
     Parameters:
     - kernel_dual (np.ndarray): A 4x4 matrix representing the dual kernel.
@@ -105,12 +159,71 @@ def overlap_signs(kernel_dual: np.ndarray) -> np.ndarray:
     #check size of input
     assert kernel_dual.shape == (4,4), "The input must be a 4x4 matrix."
 
-    kernel_dual[2,:] *= -1
-    kernel_dual[:,1] *= -1
-    kernel_dual[3,:] *= -1
-    kernel_dual[:,3] *= -1
+    kernel_dual[2,:] *= -1 #sign from substitution for spin down on right side of gate
+    kernel_dual[:,1] *= -1 #sign from substitution for spin up on left side of gate
+    kernel_dual[3,:] *= -1 #sign from substitution for spin down on right side of gate
+    kernel_dual[:,3] *= -1 #sign from substitution for spin up on left side of gate
 
     return kernel_dual
+
+
+def imaginary_i_for_global_reversal(kernel_dual: np.ndarray) -> np.ndarray:
+    """
+    Adjust the DUAL kernel by the factors of imaginary i needed to determine the sign associated with 
+    the reversal of a global string. This function uses vectorized operations for efficiency.
+
+    Parameters:
+    - kernel_dual (np.ndarray): A 4x4 matrix representing the dual kernel.
+
+    Returns:
+    - np.ndarray: The adjusted dual kernel, with each row multiplied by (1j)**n, where n is the
+      number of 1's in the binary representation of the row index.
+    """
+    # Ensure the array is of a complex type to handle complex operations
+    kernel_dual = kernel_dual.astype(np.complex128)
+    
+    # Number of rows in the kernel
+    dim_kernel = kernel_dual.shape[0]
+
+    # Pre-compute the power of 1.j for each row index
+    # Create an array of row indices
+    row_indices = np.arange(dim_kernel)
+
+    # Count the number of set bits (1s) in each row index
+    # np.unpackbits works on uint8, thus ensure dtype is uint8 and reshape after unpacking
+    bit_counts = np.unpackbits(row_indices.astype(np.uint8)[:, np.newaxis], axis=1).sum(axis=1)
+
+    # Compute the factor (1.j) raised to the number of 1s in the binary representation of each index
+    factors = (1.j) ** bit_counts
+
+    # Apply the computed factors to each row
+    kernel_dual *= factors[:, np.newaxis]  # Make factors a column vector to broadcast along rows
+
+    return kernel_dual
+
+
+def string_in_kernel(kernel_dual: np.ndarray) -> np.ndarray:
+    """
+    Adjust the DUAL kernel by the signs that result from a fermionic Jordan-Wigner string.
+    For this, one needs to determine all row indices of the kernel that contain an odd number of Grassmann variables.
+
+    Parameters:
+    - kernel_dual (np.ndarray): A matrix representing the dual kernel.
+
+    Returns:
+    - np.ndarray: The adjusted dual kernel.
+    """ 
+    #log with basis 2
+    n_ferms = np.log2(kernel_dual.shape[0]).astype(int)
+
+    #determine indices of rows with odd number of fermionic variables
+    indices_odd, _ = indices_odd_and_even(n_ferms)
+
+    #multiply the rows with odd number of fermionic variables with -1
+    kernel_dual[indices_odd,:] *= -1
+
+    return kernel_dual
+
 
 
 
@@ -174,49 +287,45 @@ def operator_to_kernel(gate_coeffs: np.ndarray, string: bool = False, branch = '
 
 
 
-
-def inverse_dual_kernel(kernel_dual: np.ndarray) -> np.ndarray:
+def dual_density_matrix_to_operator(dual_density_matrix: np.ndarray, step_type: str = 'full') -> np.ndarray:
     """
-    Performs the inverse of the function 'dual_kernel'.
-    Typically used to transfrom a dual kernel back to the original gate in the fermionic many-body basis.
-
-    This is the inverse operation of the transformation:
-    [[a00, a01, a02, a03],
-     [a10, a11, a12, a13],
-     [a20, a21, a22, a23],
-     [a30, a31, a32, a33]] <- [[a00, a10, a01, a11],
-                               [a20, a30, a21, a31],
-                               [a02, -a12, -a03, a13],
-                               [a22, -a32, -a23, a33]].
+    Converts the 'dual' (and sign-adjusted) kernel of the a density matrix of the corresponding operator in the fermionic basis.
 
     Parameters:
-    - kernel_dual (np.ndarray): A 4x4 matrix representing the dual kernel.
+    - dual_density_matrix (np.ndarray): A 4x4 matrix representing the 'dual' kernel of the density matrix.
+    - step_type (str): The type of time step that is used. Must be set to 'full' or 'half'.
 
     Returns:
-    - np.ndarray: The inverse of the 'dual_kernel' function applied to the kernel. 
-                    If the input is a valid dual kernel, the result is the original fermionic gate.
+    - np.ndarray: The matrix of the corresponding operator in the fermionic basis.
     """
-    #check size of input
-    assert kernel_dual.shape == (4,4), "The input must be a 4x4 matrix."
+    # apply inverse of 'tranform_backward_kernel' to the kernel which is the same as the forward transformation
+    dual_density_matrix = transform_backward_kernel(dual_density_matrix)
 
-    gate_coeffs = np.zeros((4, 4), dtype=np.complex_)
+    print("dual_density_matrix1: \n", dual_density_matrix)
 
-    # Reconstruct the original matrix
-    gate_coeffs[0, 0] = kernel_dual[0, 0]
-    gate_coeffs[1, 0] = kernel_dual[0, 1]
-    gate_coeffs[0, 1] = kernel_dual[0, 2]
-    gate_coeffs[1, 1] = kernel_dual[0, 3]
-    gate_coeffs[2, 0] = kernel_dual[1, 0]
-    gate_coeffs[3, 0] = kernel_dual[1, 1]
-    gate_coeffs[2, 1] = kernel_dual[1, 2]
-    gate_coeffs[3, 1] = kernel_dual[1, 3]
-    gate_coeffs[0, 2] = kernel_dual[2, 0]
-    gate_coeffs[1, 2] = -kernel_dual[2, 1]
-    gate_coeffs[0, 3] = -kernel_dual[2, 2]
-    gate_coeffs[1, 3] = kernel_dual[2, 3]
-    gate_coeffs[2, 2] = kernel_dual[3, 0]
-    gate_coeffs[3, 2] = -kernel_dual[3, 1]
-    gate_coeffs[2, 3] = -kernel_dual[3, 2]
-    gate_coeffs[3, 3] = kernel_dual[3, 3]
+    # apply inverse of 'overlap_signs' to the kernel which is the same as the forward transformation
+    dual_density_matrix = overlap_signs(dual_density_matrix)
 
-    return gate_coeffs
+    print("dual_density_matrix2: \n", dual_density_matrix)
+    # apply inverse of 'dual_kernel' to the kernel
+    density_matrix = inverse_dual_kernel(dual_density_matrix)
+
+    print("density_matrix3: \n", density_matrix)
+    return density_matrix
+
+
+if __name__ == "__main__":
+
+    #set up a random 4x4 density matrix
+    density_matrix = np.random.rand(4,4)
+
+    #compute the dual density matrix
+    dual_density_matrix = operator_to_kernel(density_matrix, branch='b')
+
+    #transform the dual density matrix back to the density matrix 
+    density_matrix_recover = dual_density_matrix_to_operator(dual_density_matrix=dual_density_matrix)
+
+    #check if it is the same as the original density matrix
+    print("recovered DM: \n", np.real(density_matrix_recover))
+    print("original DM: \n", density_matrix)
+    print(np.allclose(density_matrix_recover, density_matrix))
