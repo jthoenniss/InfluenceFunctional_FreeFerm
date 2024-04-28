@@ -4,7 +4,7 @@ import os,sys
 parent_dir = os.path.join(os.path.dirname(__file__),"../..")
 #append parent directory to path
 sys.path.append(parent_dir)
-from src.shared_modules.dual_kernel import dual_kernel, overlap_signs, operator_to_kernel, inverse_dual_kernel, dual_density_matrix_to_operator, string_in_kernel, imaginary_i_for_global_reversal
+from src.shared_modules.dual_kernel import dual_kernel, overlap_signs, operator_to_kernel, inverse_dual_kernel, dual_density_matrix_to_operator, string_in_kernel, imaginary_i_for_global_reversal, inverse_imaginary_i_for_global_reversal
 
 class TestDualGate(unittest.TestCase):
     
@@ -103,7 +103,26 @@ class TestImaginaryIForGlobalReversal(unittest.TestCase):
         self.assertTrue(np.allclose(gate_coeffs_with_i_16,self.gate_coeffs_with_i_16), "The imaginary i for global reversal function is not computed correctly")
         self.assertTrue(np.allclose(gate_coeffs_with_i_32,self.gate_coeffs_with_i_32), "The imaginary i for global reversal function is not computed correctly")
         
+class TestInverseImaginaryIForGlobalReversal(unittest.TestCase):
 
+    def setUp(self) -> None:
+        self.random_kernel_16 = np.random.rand(16,16)
+        self.random_kernel_32 = np.random.rand(32,32)
+
+        #include factors of imaginary i for global reversal
+        self.matrix_16 = imaginary_i_for_global_reversal(self.random_kernel_16)
+        self.matrix_32 = imaginary_i_for_global_reversal(self.random_kernel_32)
+
+    def test_inverse_imaginary_i_for_global_reversal(self):
+
+        print("Testing the inverse imaginary i for global reversal function")
+        #compute the kernel without imaginary i included
+        kernel_without_i_16 = inverse_imaginary_i_for_global_reversal(self.matrix_16)
+        kernel_without_i_32 = inverse_imaginary_i_for_global_reversal(self.matrix_32)
+
+        #compare the two kernels
+        self.assertTrue(np.allclose(kernel_without_i_16,np.real(self.random_kernel_16)), "The inverse imaginary i for global reversal function is not computed correctly")
+        self.assertTrue(np.allclose(kernel_without_i_32,np.real(self.random_kernel_32)), "The inverse imaginary i for global reversal function is not computed correctly")
 
 class TestOperatorToKernel(unittest.TestCase):
     """
@@ -175,7 +194,7 @@ class TestDualDensityMatrix(unittest.TestCase):
         density_matrix = dual_density_matrix_to_operator(dual_density_matrix=self.dual_density_matrix)
 
         #check if it is the same as the original density matrix
-        #self.assertTrue(np.allclose(density_matrix,self.density_matrix), f"The dual density matrix is not computed correctly:\n {np.real(density_matrix)} \n!= {self.density_matrix}")
+        self.assertTrue(np.allclose(density_matrix,self.density_matrix), f"The dual density matrix is not computed correctly:\n {np.real(density_matrix)} \n!= {self.density_matrix}")
 
 if __name__ == "__main__":
         unittest.main()

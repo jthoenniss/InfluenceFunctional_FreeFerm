@@ -8,7 +8,7 @@ import numpy as np
 import os,sys
 parent_dir = os.path.join(os.path.dirname(__file__),"..")
 sys.path.append(parent_dir)
-from src.shared_modules.many_body_operator import indices_odd_and_even
+from src.shared_modules.many_body_operator import indices_odd_and_even, idx_sign_under_reverse
 
 
 def transform_backward_kernel(kernel: np.ndarray) -> np.ndarray:
@@ -169,14 +169,14 @@ def overlap_signs(kernel_dual: np.ndarray) -> np.ndarray:
 
 def imaginary_i_for_global_reversal(kernel_dual: np.ndarray) -> np.ndarray:
     """
-    Adjust the DUAL kernel by the factors of imaginary i needed to determine the sign associated with 
+    Adjust the kernel by the factors of imaginary i needed to determine the sign associated with 
     the reversal of a global string. This function uses vectorized operations for efficiency.
 
     Parameters:
-    - kernel_dual (np.ndarray): A 4x4 matrix representing the dual kernel.
+    - kernel_dual (np.ndarray): A matrix kernel.
 
     Returns:
-    - np.ndarray: The adjusted dual kernel, with each row multiplied by (1j)**n, where n is the
+    - np.ndarray: The adjusted kernel, with each row multiplied by (1j)**n, where n is the
       number of 1's in the binary representation of the row index.
     """
     # Ensure the array is of a complex type to handle complex operations
@@ -201,14 +201,36 @@ def imaginary_i_for_global_reversal(kernel_dual: np.ndarray) -> np.ndarray:
 
     return kernel_dual
 
+def inverse_imaginary_i_for_global_reversal(kernel_dual: np.ndarray) -> np.ndarray:
+    """
+    Inverse operation of the function 'imaginary_i_for_global_reversal'.
+    This is achieved by a triple application of the function 'imaginary_i_for_global_reversal'.
+
+    Parameters:
+    - kernel_dual (np.ndarray): A matrix kernel.
+
+    Returns:
+    - np.ndarray: The adjusted kernel.
+    """
+
+    # Ensure the array is of a complex type to handle complex operations
+    kernel_dual = kernel_dual.astype(np.complex128)
+    
+    # Apply imaginary_i_for_global_reversal to the kernel three times
+    for _ in range(3):
+        kernel_dual = imaginary_i_for_global_reversal(kernel_dual)
+
+    return kernel_dual
+
+
 
 def string_in_kernel(kernel_dual: np.ndarray) -> np.ndarray:
     """
-    Adjust the DUAL kernel by the signs that result from a fermionic Jordan-Wigner string.
+    Adjust the kernel by the signs that result from a fermionic Jordan-Wigner string.
     For this, one needs to determine all row indices of the kernel that contain an odd number of Grassmann variables.
 
     Parameters:
-    - kernel_dual (np.ndarray): A matrix representing the dual kernel.
+    - kernel_dual (np.ndarray): A matrix representing the kernel.
 
     Returns:
     - np.ndarray: The adjusted dual kernel.
@@ -225,7 +247,28 @@ def string_in_kernel(kernel_dual: np.ndarray) -> np.ndarray:
     return kernel_dual
 
 
+def sign_for_local_reversal(kernel_dual: np.ndarray) -> np.ndarray:
+    """
+    Adjust the kernel by the factors of -1 needed to reverse the outgoing Grassmann variables for a local gate.
 
+    Parameters:
+    - kernel_dual (np.ndarray): A matrix kernel.
+
+    Returns:
+    - np.ndarray: The adjusted dual kernel, with each row that changes sign under local reversal multiplied by -1.
+    """
+    #number of Grassmann variables
+    nbr_ferms = np.log2(kernel_dual.shape[0]).astype(int)
+
+    #determine the indices of the rows that change sign under local reversal
+    indices_sign_change = idx_sign_under_reverse(nbr_ferms)
+
+    #multiply the rows that change sign under local reversal with -1
+    kernel_dual[indices_sign_change,:] *= -1
+
+    return kernel_dual
+    
+    
 
 def operator_to_kernel(gate_coeffs: np.ndarray, string: bool = False, branch = 'f', boundary: bool = False) -> np.ndarray:
     """
@@ -276,12 +319,16 @@ def operator_to_kernel(gate_coeffs: np.ndarray, string: bool = False, branch = '
         kernel_dual[[i for i in [1,3]],:] *= -1
         kernel_dual[:,[i for i in [1,3]]] *= -1
 
-    # If the gate is a string gate, the single-down-Grassmann entries must be multiplied by -1.
-    # Factor of complex i is included here for the reversing of the spin-down Grassmann variables. 
-    # This is only relevant if one deals with spin-hopping Hamiltonians, i.e. Hamiltonians that can be odd within a single spin species. 
-    string_var = -1. if string == True else 1.
 
-    kernel_dual = np.diag([1, string_var * 1.j,string_var * 1.j,1]) @ kernel_dual
+    #include the string in the kernel 
+    if string == True:
+        kernel_dual = string_in_kernel(kernel_dual)
+
+    #swap the order of the variables in the outgoing space (corresponds to sign changes in corresponding rows of kernel)
+    kernel_dual = sign_for_local_reversal(kernel_dual)
+
+    #apply the factors of imaginary i needed to determine the sign associated with the reversal of a global string
+    kernel_dual = imaginary_i_for_global_reversal(kernel_dual)
    
     return kernel_dual
 
@@ -298,19 +345,22 @@ def dual_density_matrix_to_operator(dual_density_matrix: np.ndarray, step_type: 
     Returns:
     - np.ndarray: The matrix of the corresponding operator in the fermionic basis.
     """
-    # apply inverse of 'tranform_backward_kernel' to the kernel which is the same as the forward transformation
+    # undo factors of imaginary i
+    dual_density_matrix = inverse_imaginary_i_for_global_reversal(dual_density_matrix)
+
+    # swap the order of the variables in the outgoing space (corresponds to sign changes in corresponding rows of kernel)
+    dual_density_matrix = sign_for_local_reversal(dual_density_matrix)
+
+    
+    # invert trafo from backward branch which is the same as forward trafo
     dual_density_matrix = transform_backward_kernel(dual_density_matrix)
 
-    print("dual_density_matrix1: \n", dual_density_matrix)
-
-    # apply inverse of 'overlap_signs' to the kernel which is the same as the forward transformation
+    # apply inverse of 'overlap_signs' to the kernel which is the same as forward trafo
     dual_density_matrix = overlap_signs(dual_density_matrix)
 
-    print("dual_density_matrix2: \n", dual_density_matrix)
     # apply inverse of 'dual_kernel' to the kernel
     density_matrix = inverse_dual_kernel(dual_density_matrix)
 
-    print("density_matrix3: \n", density_matrix)
     return density_matrix
 
 
