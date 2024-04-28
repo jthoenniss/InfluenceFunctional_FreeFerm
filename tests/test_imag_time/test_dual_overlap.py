@@ -31,6 +31,7 @@ class TestHamiltonian(unittest.TestCase):
         self.H[3,3] += self.E_up + self.E_down + self.U
 
     def test_Hamiltonian(self):
+        print("Testing the Hamiltonian")
         #test that the Hamiltonian is correctly set up
         Ham = Hamiltonian(E_up=self.E_up, E_down=self.E_down, t=self.t, U=self.U)
         self.assertTrue(np.array_equal(self.H, Ham))
@@ -69,7 +70,7 @@ class TestOperatorToKernel(unittest.TestCase):
         self.gate_Anderson[3,3] = np.exp(-1. *(self.E_up + self.E_down + self.U) * self.delta_tau)
 
     def test_operator_to_kernel(self):
-        
+        print("Testing the operator-to-kernel function")
         #"dual" evolution operator
         gate_hopping = operator_to_kernel(self.U_evol_hopping)
         gate_Anderson = operator_to_kernel(self.U_evol_Anderson)

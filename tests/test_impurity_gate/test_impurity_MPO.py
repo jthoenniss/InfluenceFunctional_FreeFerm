@@ -18,6 +18,7 @@ class TestAdjustString(unittest.TestCase):
             self.string = np.random.choice([True,False], size=2*self.nbr_time_steps+2)
 
         def test_adjust_string(self):
+            print("Test adjust_string")
             #compute a Keldysh-index from a time-point and branch
             Keldysh_idx = position_to_Keldysh_idx(7, 'f', nbr_time_steps=self.nbr_time_steps)
             print("Test adjust_string")

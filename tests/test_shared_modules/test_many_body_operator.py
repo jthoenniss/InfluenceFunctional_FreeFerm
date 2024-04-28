@@ -22,7 +22,7 @@ class TestAnnihilationsOps(unittest.TestCase):
         
 
     def test_annihilation_ops(self):
-
+        print("Testing the annihilation operators")
         #check the annihilation opeators for 2 sites explicitly:
 
         c_1 = np.zeros((4,4),dtype=np.complex_) 
@@ -49,7 +49,7 @@ class TestAnnihilationsOps(unittest.TestCase):
         self.assertTrue(np.allclose(MB_op,MB_op_check), "The many-body operator is not computed correctly")
 
     def test_many_body_operator_sign(self):
-
+        print("Testing the sign of the many-body operator")
         #create a string of annihilation operators and check that the reversed string has the correct sign        
 
         #check 1:
@@ -99,13 +99,13 @@ class test_idx_signs_under_reverse(unittest.TestCase):
         self.idx_signs_seven_site = idx_sign_under_reverse(n_ferms = 7)
     
     def test_idx_signs_under_reverse(self):
-
+        print("Testing the idx_signs_under_reverse")
         #check the idx_signs_under_reverse for 4 sites explicitly:
         idx_explicit = [3,5,6,7,9,10,11,12,13,14]
         self.assertTrue(np.allclose(self.idx_signs_twosite,idx_explicit), f"The idx_signs_under_reverse is not computed correctly,\n{idx_explicit},\n{self.idx_signs_twosite}")
 
     def test_many_body_operator_sign(self):
-
+        print("Testing the sign of the many-body operator, part 2")
         #create a string of annihilation operators and check that the reversed string has the correct sign        
 
         #check 1:

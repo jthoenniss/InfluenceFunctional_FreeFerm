@@ -19,6 +19,7 @@ class TestDualDensityMatrix(unittest.TestCase):
 
     def test_dual_density_matrix(self):
 
+        print("Testing the dual density matrix")
         #transform the dual density matrix back to the density matrix 
         density_matrix = dual_density_matrix_to_operator(dual_density_matrix=self.dual_density_matrix)
 
@@ -38,7 +39,7 @@ class Testhalf_evolve_dual_density_matrix(unittest.TestCase):
         self.dual_density_matrix = operator_to_kernel(self.density_matrix, branch='b')
 
     def test_half_evolve_dual_density_matrix(self):
-         
+        print("Testing the half time step evolution of the dual density matrix")
         #evolve the dual density matrix by two half a time step and assert that is returns the original density matrix
 
         #evolve the dual density matrix by half a trivial IF step
@@ -63,7 +64,7 @@ class TestDensityMatrixToOperator(unittest.TestCase):
         self.half_evolved_dual_density_matrix = half_evolve_dual_density_matrix(self.dual_density_matrix, step_type='IF')
 
     def test_dual_density_matrix(self):
-
+        print("Testing the dual density matrix to operator conversion")
         #transform the dual density matrix back to the density matrix 
         density_matrix = dual_density_matrix_to_operator(dual_density_matrix=self.dual_density_matrix, step_type='full')
         #transform the half-evolved dual density matrix back to the density matrix 

@@ -105,7 +105,7 @@ class TestInterleave(unittest.TestCase):
         Returns:
         gate: 16x16 np.array, interleaved gate
         """
-        
+        print("Test interleave")
         gate = np.zeros((16,16),dtype=np.complex_)
         #specify the order of the rows in the interleaved gate:
         rows = [0,1,4,5,2,3,6,7,8,9,12,13,10,11,14,15]
