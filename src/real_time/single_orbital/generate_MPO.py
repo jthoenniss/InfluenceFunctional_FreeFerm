@@ -178,18 +178,6 @@ def impurity_MPO(U_evol: np.ndarray, initial_density_matrix: np.ndarray, nbr_tim
         elif branch_b == 'f' and time_point_b < time_point_a:
             global_sign *= -1
 
-        
 
-    #__________Gate without operator insertions for partition sum__________
-    #Boundary condition with antiperiodic boundary condition
-    MPO_boundary_condition_Z = operator_to_kernel(np.eye(U_evol.shape[0]), branch='f', boundary = True)
-    MPO_init_state_Z = operator_to_kernel(np.eye(U_evol.shape[0]), branch='b')
-    MPO_gates_Z = np.zeros((nbr_time_steps-1, U_evol.shape[0]**2, U_evol.shape[0]**2), dtype = np.complex128)#holds interleaved gates
-    #iterate through time points:
-    for time in range(1,nbr_time_steps):
-        kernel_fw = operator_to_kernel(U_evol, branch='f')
-        kernel_bw = operator_to_kernel(U_evol.T.conj(), branch='b')
-        MPO_gates_Z[time - 1] = interleave(kernel_fw, kernel_bw, mapping=mapping)
-
-    return {'boundary_condition': MPO_boundary_condition, 'init_state': MPO_init_state, 'gates': MPO_gates, 'global_sign': global_sign,
-            'boundary_condition_Z': MPO_boundary_condition_Z, 'init_state_Z': MPO_init_state_Z, 'gates_Z': MPO_gates_Z}
+    return {'boundary_condition': MPO_boundary_condition, 'init_state': MPO_init_state, 'gates': MPO_gates, 'global_sign': global_sign}
+           
