@@ -92,9 +92,7 @@ def compute_propagator(IF_MB: np.ndarray, U_evol: np.ndarray, init_density_matri
     #infer the number of timesteps form the length of the many-body representation of the IF
     nbr_time_steps = int(np.log2(len(IF_MB))/4)
 
-    G_up_up_ff = []#empty array to hold the values of the propagator
-
-
+    propagator = []#empty array to hold the values of the propagator
 
     #construct the explicit many-body representation of the MPO for the partition sum (without operator insertions)
     MPO = impurity_MPO(U_evol = U_evol, initial_density_matrix=init_density_matrix, nbr_time_steps=nbr_time_steps)
@@ -103,7 +101,7 @@ def compute_propagator(IF_MB: np.ndarray, U_evol: np.ndarray, init_density_matri
         imp_gate_Z = np.kron(imp_gate_Z, gate)
     imp_gate_Z = np.kron(imp_gate_Z, MPO["boundary_condition"])#add final state
 
-
+    #______compute propagator for spin up on forward branch________
     #compute the Keldysh index corresponding to the initial time point
     Keldysh_idx_0 = position_to_Keldysh_idx(0, 'f', nbr_time_steps)
     for tau in range(nbr_time_steps):
@@ -126,9 +124,9 @@ def compute_propagator(IF_MB: np.ndarray, U_evol: np.ndarray, init_density_matri
 
         propag = propag / Z #normalize the propagator
 
-        G_up_up_ff.append(propag)
+        propagator.append(propag)
 
-    return np.array(G_up_up_ff)
+    return np.array(propagator)
 
 
 
@@ -149,7 +147,7 @@ if __name__ == "__main__":
 
 
     #read out matrix B from file
-    filename = '/Users/julianthoenniss/Documents/PhD/code/InfluenceFunctional_FreeFerm/data/benchmark_delta_t=0.1_Tren=5_beta=50.0_T=2'
+    filename = '/Users/julianthoenniss/Documents/PhD/code/InfluenceFunctional_FreeFerm/data/benchmark_delta_t=0.1_Tren=5_beta=50.0_T=3'
 
     #read the influence matrix B from disk
     B = read_IF(filename)
@@ -163,22 +161,26 @@ if __name__ == "__main__":
     #normalize the density matrix
     init_density_matrix = init_density_matrix / np.trace(init_density_matrix)
 
-    print("origginal DM: ", init_density_matrix)
-
+    #set up the Hamiltonian
     Ham_onsite = E_down * c_down.T.conj() @ c_down + E_up * c_up.T.conj() @ c_up 
     Ham_spinhop = t_spinhop* (c_up.T @ c_down + c_down.T @ c_up)
     U_evol =  expm(1j*Ham_onsite * delta_t)  @ expm(1j * Ham_spinhop * delta_t)#time-evolution operator of the impurity model
 
     #compute the propagator
+    #spin up:
     G_upup_ff = compute_propagator(IF_MB, U_evol, init_density_matrix, operator_0=c_up.T.conj(), operator_tau= c_up)
+    #spin down:
+    G_downdown_ff = compute_propagator(IF_MB, U_evol, init_density_matrix, operator_0=c_down.T.conj(), operator_tau= c_down)
 
-    print("Dual Overlap -- Forward-forward propagator for spin up:")
+    print("MANY-BODY OVERLAP:")
     for tau in range (len(G_upup_ff)):
-        print(f'G_upup_ff({tau}) = {G_upup_ff[tau]}')
+        print(f'G_upup_ff({tau}) = {np.round(G_upup_ff[tau],6)}')
+    for tau in range (len(G_downdown_ff)):
+        print(f'G_downdown_ff({tau}) = {np.round(G_downdown_ff[tau],6)}')
+
 
     #evolve the density matrix
     density_matrices = evolve_density_matrix(IF_MB, U_evol = U_evol, init_density_matrix = init_density_matrix)
-
     #print density matrices
     print("Density matrices at full time steps:")
     for tau in range (0,len(density_matrices),2):

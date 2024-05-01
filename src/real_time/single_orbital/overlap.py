@@ -245,41 +245,33 @@ def evolve_density_matrix_grassmann(exponent_full: np.ndarray) -> np.ndarray:
     return density_matrices
 
 
-def compute_propagator_grassmann(exponent: np.ndarray, trotter_convention = ''):
+def compute_propagator_grassmann(exponent: np.ndarray):
     """
     Function to compute different components of the propagator for the non-interacting case.
     Parameters:
     - exponent: np.ndarray, shape=(4*dim_B, 4*dim_B), full action of the path integral
-    - trotter_convention: str, convention for the Trotter decomposition of the path integral
 
     Returns:
     - G_upup_ff: list, forward-forward propagator for spin up
     - G_downdown_ff: list, forward-forward propagator for spin down
-    - G_updown_ff: list, forward-forward propagator between spin up and down
-    - G_upup_fb: list, forward-backward propagator for spin up
-    - G_downdown_fb: list, forward-backward propagator for spin down
-    - G_updown_fb: list, forward-backward propagator between spin up and down
     """
+    #arrays to hold the values of the propagators:
+    G_upup_ff = [] #forward-forward
+    G_downdown_ff = [] #forward-forward
 
     dim_B = exponent.shape[0]//4
     nbr_time_steps = dim_B//4 
-   
 
-    G_upup_ff = [] #forward-forward
-    G_downdown_ff = [] #forward-forward
-    G_updown_ff = [] #forward-forward
-    G_upup_fb = [] #forward-backward
-    G_downdown_fb = [] #forward-backward
-    G_updown_fb = [] #forward-backward
-
+    #integrate the whole action (corresponds to inversion)
     exponent_inv = linalg.inv(exponent)
 
-    #tau 0 :
+    #compute the propators at all full time steps:
     for tau in range (nbr_time_steps):
-        G_upup_ff.append(pf.pfaffian(np.array(exponent_inv.T[np.ix_([dim_B//2 -1, 2*dim_B +dim_B//2 -1 - 2*tau], [dim_B//2 -1, 2*dim_B +dim_B//2 -1- 2*tau])]))) #c(0) c^\dag(0)
+        G_upup_ff.append(pf.pfaffian(exponent_inv.T[np.ix_([dim_B//2 -1, 2*dim_B +dim_B//2 -1 - 2*tau], [dim_B//2 -1, 2*dim_B +dim_B//2 -1- 2*tau])]))
+        G_downdown_ff.append(pf.pfaffian(exponent_inv.T[np.ix_([dim_B + dim_B//2 -1 - 2*tau, 3*dim_B +dim_B//2 -1], [dim_B + dim_B//2 -1 - 2*tau, 3*dim_B +dim_B//2 -1])]))
 
 
-    return G_upup_ff, G_downdown_ff, G_updown_ff, G_upup_fb, G_downdown_fb, G_updown_fb 
+    return G_upup_ff, G_downdown_ff
 
 
 if __name__ == "__main__":
@@ -288,7 +280,7 @@ if __name__ == "__main__":
 
     #import file containing the IF (must exist. If not, run the file 'real_time_IM.py)
     
-    filename = '/Users/julianthoenniss/Documents/PhD/code/InfluenceFunctional_FreeFerm/data/benchmark_delta_t=0.1_Tren=5_beta=50.0_T=2'
+    filename = '/Users/julianthoenniss/Documents/PhD/code/InfluenceFunctional_FreeFerm/data/benchmark_delta_t=0.1_Tren=5_beta=50.0_T=3'
 
     #read the influence matrix B from disk
     B = read_IF(filename)
@@ -307,16 +299,16 @@ if __name__ == "__main__":
     exponent = construct_grassmann_exponential(B = B, delta_t=delta_t, t_spinhop=t_spinhop, E_up=E_up, E_down=E_down, beta_up=beta_up, beta_down=beta_down)
 
     #compute the propagator
-    G_upup_ff, G_downdown_ff, G_updown_ff, G_upup_fb, G_downdown_fb, G_updown_fb = compute_propagator_grassmann(exponent)
+    G_upup_ff, G_downdown_ff = compute_propagator_grassmann(exponent)
     
-    print("Grassmann Overlap -- Forward-forward propagator for spin up:")
+    print("GRASSMANN OVERLAP:")
+    #spin up:
     for tau in range (len(G_upup_ff)):
-        print(f'G_upup_ff({tau}) = {G_upup_ff[tau]}')
-        #print(f'G_downdown_ff({tau}) = {G_downdown_ff[tau]}')
-        #print(f'G_updown_ff({tau}) = {G_updown_ff[tau]}')
-        #print(f'G_upup_fb({tau}) = {G_upup_fb[tau]}')
-        #print(f'G_downdown_fb({tau}) = {G_downdown_fb[tau]}')
-        #print(f'G_updown_fb({tau}) = {G_updown_fb[tau]}')
+        print(f'G_upup_ff({tau}) = {np.round(G_upup_ff[tau],6)}')
+    #spin down:
+    for tau in range (len(G_downdown_ff)):
+        print(f'G_downdown_ff({tau}) = {np.round(G_downdown_ff[tau],6)}')
+       
 
     #compute the density matrix
     density_matrices = evolve_density_matrix_grassmann(exponent)
