@@ -45,9 +45,9 @@ def evolve_density_matrix(IF_MB: np.ndarray, U_evol: np.ndarray, init_density_ma
         imp_gate = np.kron(imp_gate, gate)
     imp_gate = np.kron(imp_gate, MPO["boundary_condition"])#add final state
 
-    density_matrices = [init_density_matrix]#list to hold the density matrices at all time steps
+    density_matrices = []#list to hold the density matrices at all time steps
     #successively evolve the initial state:
-    for tau in range (1,2*nbr_time_steps):
+    for tau in range (0,2*nbr_time_steps):
         
         #reshape such that the ingoing legs (forward and backward) are separate
         IF_MB = IF_MB.reshape(4 ** tau, 4, -1)
@@ -66,11 +66,11 @@ def evolve_density_matrix(IF_MB: np.ndarray, U_evol: np.ndarray, init_density_ma
         else: #if the uncontracted legs are at a full time step:
             #Connect the forward and backward legs of the uncontracted IF variables
             rho_dual_temp = rho_dual_temp.reshape(2,2,4,4,2,2) 
-            rho_dual_temp = np.einsum('mmacnn->ac', rho_dual_temp, optimize=True)/4#connect forward and backward leg
+            rho_dual_temp = np.einsum('mmacnn->ac',rho_dual_temp, optimize=True)/4#connect forward and backward leg
             #convert the dual density matrix to the density matrix and append it to the list
             density_matrices.append(dual_density_matrix_to_operator(rho_dual_temp, step_type="full"))
 
-    return density_matrices
+    return np.array(density_matrices)
 
     
 
@@ -128,7 +128,7 @@ def compute_propagator(IF_MB: np.ndarray, U_evol: np.ndarray, init_density_matri
 
         G_up_up_ff.append(propag)
 
-    return G_up_up_ff
+    return np.array(G_up_up_ff)
 
 
 
@@ -141,22 +141,28 @@ if __name__ == "__main__":
     E_up = 3 #energy of the up fermion
     E_down = 4 #energy of the down fermion
     t_spinhop = 5 #spin hopping term
+    beta_up = 1 #inverse temperature of the up fermion
+    beta_down = 2 #inverse temperature of the down fermion
 
     #array containing the many-body representations of all annihilation operators for two fermions species
     c_down, c_up = annihilation_ops(n_ferms=2)
 
 
     #read out matrix B from file
-    filename = '/Users/julianthoenniss/Documents/PhD/code/InfluenceFunctional_FreeFerm/data/benchmark_delta_t=0.1_Tren=5_beta=50.0_T=3_vac'
+    filename = '/Users/julianthoenniss/Documents/PhD/code/InfluenceFunctional_FreeFerm/data/benchmark_delta_t=0.1_Tren=5_beta=50.0_T=2'
 
     #read the influence matrix B from disk
     B = read_IF(filename)
 
     #convert the influence matrix to a many-body state
     IF_MB = IF_many_body(B)
+    nbr_time_steps = int(np.log2(len(IF_MB))/4)
 
     #initial density matrix of the system
-    init_density_matrix = np.random.random((4,4))
+    init_density_matrix = expm(-beta_up * c_up.T.conj() @ c_up - beta_down *c_down.T.conj() @ c_down)
+    #normalize the density matrix
+    init_density_matrix = init_density_matrix / np.trace(init_density_matrix)
+
     print("origginal DM: ", init_density_matrix)
 
     Ham_onsite = E_down * c_down.T.conj() @ c_down + E_up * c_up.T.conj() @ c_up 
@@ -171,5 +177,10 @@ if __name__ == "__main__":
         print(f'G_upup_ff({tau}) = {G_upup_ff[tau]}')
 
     #evolve the density matrix
-    evolve_density_matrix(IF_MB, U_evol = U_evol, init_density_matrix = init_density_matrix)
+    density_matrices = evolve_density_matrix(IF_MB, U_evol = U_evol, init_density_matrix = init_density_matrix)
+
+    #print density matrices
+    print("Density matrices at full time steps:")
+    for tau in range (0,len(density_matrices),2):
+        print(f'rho({tau//2}) = \n{np.real(density_matrices[tau] / np.trace(density_matrices[tau]))}')
 
