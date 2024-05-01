@@ -26,6 +26,9 @@ def evolve_density_matrix(IF_MB: np.ndarray, U_evol: np.ndarray, init_density_ma
     - IF_MB (numpy.ndarray): An array of complex numbers representing the many-body wavefunction of the influence functional.
     - U_evol (numpy.ndarray): A (4x4) numpy array representing the 'dual' and 'sign-adjusted' time-evolution operator defined by the impurity Hamiltonian.
     - init_density_matrix (numpy.ndarray): A (4x4) numpy array representing the initial density matrix of the impurity model in the fermionic operator basis.
+    
+    Returns:
+    - numpy.ndarray: A list of density matrices at all half time steps, including the original density matrix at time 0.
     """
 
     #infer the number of timesteps form the length of the many-body representation of the IF
@@ -42,7 +45,7 @@ def evolve_density_matrix(IF_MB: np.ndarray, U_evol: np.ndarray, init_density_ma
         imp_gate = np.kron(imp_gate, gate)
     imp_gate = np.kron(imp_gate, MPO["boundary_condition"])#add final state
 
-    
+    density_matrices = [init_density_matrix]#list to hold the density matrices at all time steps
     #successively evolve the initial state:
     for tau in range (1,2*nbr_time_steps):
         
@@ -57,15 +60,17 @@ def evolve_density_matrix(IF_MB: np.ndarray, U_evol: np.ndarray, init_density_ma
             #Connect the forward and backward legs of the uncontracted impurity gate variables
             rho_dual_temp = rho_dual_temp.reshape(4,2,2,2,2,4) 
             rho_dual_temp = np.einsum('ammnnc->ac', rho_dual_temp, optimize=True)/4 #connect forward and backward leg
+            #convert the dual density matrix to the density matrix and append it to the list
+            density_matrices.append(dual_density_matrix_to_operator(rho_dual_temp, step_type="half"))
           
         else: #if the uncontracted legs are at a full time step:
             #Connect the forward and backward legs of the uncontracted IF variables
             rho_dual_temp = rho_dual_temp.reshape(2,2,4,4,2,2) 
             rho_dual_temp = np.einsum('mmacnn->ac', rho_dual_temp, optimize=True)/4#connect forward and backward leg
-           
+            #convert the dual density matrix to the density matrix and append it to the list
+            density_matrices.append(dual_density_matrix_to_operator(rho_dual_temp, step_type="full"))
 
-            
-        
+    return density_matrices
 
     
 
