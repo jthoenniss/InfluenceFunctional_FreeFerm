@@ -13,11 +13,11 @@ from src.shared_modules.IF_many_body import IF_many_body
 from src.real_time.single_orbital.generate_MPO import impurity_MPO
 from src.shared_modules.Keldysh_contour import position_to_Keldysh_idx
 from src.real_time.single_orbital.dual_density_matrix import dual_density_matrix_to_operator
-
 from scipy.linalg import expm
+from typing import Tuple
 
 
-def evolve_density_matrix(IF_MB: np.ndarray, U_evol: np.ndarray, init_density_matrix: np.ndarray) -> np.ndarray:
+def evolve_density_matrix_MB(IF_MB: np.ndarray, U_evol: np.ndarray, init_density_matrix: np.ndarray) -> np.ndarray:
     """
     Compute the time-evolved density matrix at all half time steps, i.e. after application of IF and after following application of impurity gate.
     The evolution is computed by explicitly contracting the many-body state with the gates.
@@ -74,7 +74,7 @@ def evolve_density_matrix(IF_MB: np.ndarray, U_evol: np.ndarray, init_density_ma
 
     
 
-def compute_propagator(IF_MB: np.ndarray, U_evol: np.ndarray, init_density_matrix: np.ndarray, operator_0, operator_tau) -> np.ndarray:
+def compute_propagator_MB(IF_MB: np.ndarray, U_evol: np.ndarray, init_density_matrix: np.ndarray, operator_0, operator_tau) -> np.ndarray:
     """
     Compute the propagator of the impurity model based on the many-body wavefunction of the influence functional and the time-evolution operator of the impurity model.
 
@@ -130,21 +130,44 @@ def compute_propagator(IF_MB: np.ndarray, U_evol: np.ndarray, init_density_matri
 
 
 
+def setup_MB_operators(E_up: float = 0, E_down: float = 0, t_spinhop: float = 0, U:float = 0, beta_up: float = 0, beta_down: float = 0, delta_t: float = 0.1) -> dict:
+    """
+    Set up the many-body operators needed to compute the propagator and evolved density matrix.
 
+    Parameters:
+    - E_up (float): The energy of the up fermion.
+    - E_down (float): The energy of the down fermion.
+    - t_spinhop (float): The spin hopping term.
+    - U (float): The interaction term.
+    - beta_up (float): The inverse temperature of the up fermion.
+    - beta_down (float): The inverse temperature of the down fermion.
+    - delta_t (float): The time step.
 
-
-if __name__ == "__main__":
-    #Set parameters:
-    delta_t = 0.1 #time step
-    E_up = 3 #energy of the up fermion
-    E_down = 4 #energy of the down fermion
-    t_spinhop = 5 #spin hopping term
-    beta_up = 1 #inverse temperature of the up fermion
-    beta_down = 2 #inverse temperature of the down fermion
-
+    Returns:
+    - dict: A dictionary containing the initial density matrix, the time-evolution operator, and the annihilation operators for the up and down fermions.
+    """
     #array containing the many-body representations of all annihilation operators for two fermions species
     c_down, c_up = annihilation_ops(n_ferms=2)
 
+    #____INITIAL DENSITY MATRIX____
+    init_density_matrix = expm(- beta_up * c_up.T @ c_up) @ expm(- beta_down * c_down.T @ c_down)
+    Z = np.trace(init_density_matrix)
+    init_density_matrix = init_density_matrix / Z#normalize
+
+    #___SET UP HAMILTONIAN
+    Ham_onsite = E_up * c_up.T @ c_up  + E_down * c_down.T @ c_down 
+    Ham_spinhop = t_spinhop * (c_up.T @ c_down + c_down.T @ c_up)
+    Ham_interaction = U * c_up.T @ c_up @ c_down.T @ c_down 
+
+    #by convention (and analogy with the Grassmann code), define the time-evolution operator as the product of the spin-diagonal and spin-offdiagoanl evolution operators.
+    U_evol =  expm(1j*(Ham_onsite + Ham_interaction) * delta_t)  @ expm(1j * Ham_spinhop * delta_t)#time-evolution operator of the impurity model
+
+    return {"init_density_matrix": init_density_matrix, "U_evol": U_evol, "c_down": c_down, "c_up": c_up}
+
+if __name__ == "__main__":
+
+    # Set parameters for the impurity model
+    params = {"E_up": 3, "E_down": 4, "t_spinhop": 5, "beta_up": 1, "beta_down": 2, "delta_t": 0.1}
 
     #read out matrix B from file
     filename = '/Users/julianthoenniss/Documents/PhD/code/InfluenceFunctional_FreeFerm/data/benchmark_delta_t=0.1_Tren=5_beta=50.0_T=3'
@@ -154,23 +177,19 @@ if __name__ == "__main__":
 
     #convert the influence matrix to a many-body state
     IF_MB = IF_many_body(B)
-    nbr_time_steps = int(np.log2(len(IF_MB))/4)
-
-    #initial density matrix of the system
-    init_density_matrix = expm(-beta_up * c_up.T.conj() @ c_up - beta_down *c_down.T.conj() @ c_down)
-    #normalize the density matrix
-    init_density_matrix = init_density_matrix / np.trace(init_density_matrix)
-
-    #set up the Hamiltonian
-    Ham_onsite = E_down * c_down.T.conj() @ c_down + E_up * c_up.T.conj() @ c_up 
-    Ham_spinhop = t_spinhop* (c_up.T @ c_down + c_down.T @ c_up)
-    U_evol =  expm(1j*Ham_onsite * delta_t)  @ expm(1j * Ham_spinhop * delta_t)#time-evolution operator of the impurity model
+    
+    #set up the many-body operators
+    MB_operators = setup_MB_operators(**params)
+    init_density_matrix = MB_operators['init_density_matrix']
+    U_evol = MB_operators['U_evol']
+    c_down = MB_operators['c_down']
+    c_up = MB_operators['c_up']
 
     #compute the propagator
     #spin up:
-    G_upup_ff = compute_propagator(IF_MB, U_evol, init_density_matrix, operator_0=c_up.T.conj(), operator_tau= c_up)
+    G_upup_ff = compute_propagator_MB(IF_MB, U_evol, init_density_matrix, operator_0=c_up.T, operator_tau= c_up)
     #spin down:
-    G_downdown_ff = compute_propagator(IF_MB, U_evol, init_density_matrix, operator_0=c_down.T.conj(), operator_tau= c_down)
+    G_downdown_ff = compute_propagator_MB(IF_MB, U_evol, init_density_matrix, operator_0=c_down.T, operator_tau= c_down)
 
     print("MANY-BODY OVERLAP:")
     for tau in range (len(G_upup_ff)):
@@ -180,9 +199,12 @@ if __name__ == "__main__":
 
 
     #evolve the density matrix
-    density_matrices = evolve_density_matrix(IF_MB, U_evol = U_evol, init_density_matrix = init_density_matrix)
+    density_matrices = evolve_density_matrix_MB(IF_MB, U_evol = U_evol, init_density_matrix = init_density_matrix)
+    #normalize density matrices
+    for tau in range (0,len(density_matrices),2):
+        density_matrices[tau] = density_matrices[tau] / np.trace(density_matrices[tau])
     #print density matrices
     print("Density matrices at full time steps:")
     for tau in range (0,len(density_matrices),2):
-        print(f'rho({tau//2}) = \n{np.real(density_matrices[tau] / np.trace(density_matrices[tau]))}')
+        print(f'rho({tau//2}) = \n{np.real(density_matrices[tau])}')
 
