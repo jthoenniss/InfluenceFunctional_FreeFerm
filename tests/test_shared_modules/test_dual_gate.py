@@ -4,7 +4,7 @@ import os,sys
 parent_dir = os.path.join(os.path.dirname(__file__),"../..")
 #append parent directory to path
 sys.path.append(parent_dir)
-from src.shared_modules.dual_kernel import dual_kernel, overlap_signs, operator_to_kernel, inverse_dual_kernel, string_in_kernel, imaginary_i_for_global_reversal, inverse_imaginary_i_for_global_reversal
+from src.shared_modules.dual_kernel import dual_kernel, overlap_signs, operator_to_kernel, inverse_dual_kernel, string_in_kernel, imaginary_i_for_global_reversal, inverse_imaginary_i_for_global_reversal, sign_for_local_reversal
 
 class TestDualGate(unittest.TestCase):
     
@@ -123,6 +123,36 @@ class TestInverseImaginaryIForGlobalReversal(unittest.TestCase):
         #compare the two kernels
         self.assertTrue(np.allclose(kernel_without_i_16,np.real(self.random_kernel_16)), "The inverse imaginary i for global reversal function is not computed correctly")
         self.assertTrue(np.allclose(kernel_without_i_32,np.real(self.random_kernel_32)), "The inverse imaginary i for global reversal function is not computed correctly")
+
+
+class TestSignForLocalReversal(unittest.TestCase):
+
+    def setUp(self) -> None:
+
+        #set up a random 16x16 gate
+        self.gate_coeffs_16 = np.random.rand(16, 16)
+        self.gate_coeffs_34 = np.random.rand(34, 34)
+
+        #include signs for local reversal (signs for which reversal of output fermions picks up a sign)
+        signed_idcs = lambda size: np.array([-1 if (bin(i).count('1')//2)%2 == 1 else 1 for i in range(size)])
+
+        #multiply the rows with odd number of Grassmann variables with -1
+        self.gate_coeffs_16_expected = self.gate_coeffs_16 * signed_idcs(16)[:,np.newaxis]
+        self.gate_coeffs_34_expected = self.gate_coeffs_34 * signed_idcs(34)[:,np.newaxis]
+    
+    def test_sign_for_local_reversal(self):
+
+        print("Testing the sign for local reversal function")
+        #compute the gate coefficients with signs for local reversal included
+        gate_coeffs_with_sign_16 = sign_for_local_reversal(self.gate_coeffs_16)
+        gate_coeffs_with_sign_34 = sign_for_local_reversal(self.gate_coeffs_34)
+
+        #compare the two gate coefficients
+        self.assertTrue(np.allclose(gate_coeffs_with_sign_16,self.gate_coeffs_16_expected), f"The sign for local reversal function is not computed correctly (16), got {gate_coeffs_with_sign_16} and expected {self.gate_coeffs_16_expected}")
+        self.assertTrue(np.allclose(gate_coeffs_with_sign_34,self.gate_coeffs_34_expected), f"The sign for local reversal function is not computed correctly (34), got {gate_coeffs_with_sign_34} and expected {self.gate_coeffs_34_expected}")
+
+
+
 
 class TestOperatorToKernel(unittest.TestCase):
     """

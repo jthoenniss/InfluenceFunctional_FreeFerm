@@ -94,9 +94,9 @@ class test_idx_signs_under_reverse(unittest.TestCase):
     def setUp(self) -> None:
         
         #generate the idx_signs_under_reverse for 4
-        self.idx_signs_twosite = idx_sign_under_reverse(n_ferms = 4)
+        self.idx_signs_twosite = idx_sign_under_reverse(kernel_dim= 2**4)
 
-        self.idx_signs_seven_site = idx_sign_under_reverse(n_ferms = 7)
+        self.idx_signs_seven_site = idx_sign_under_reverse(kernel_dim= 2**7)
     
     def test_idx_signs_under_reverse(self):
         print("Testing the idx_signs_under_reverse")

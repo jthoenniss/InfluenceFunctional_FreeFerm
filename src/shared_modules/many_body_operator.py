@@ -140,18 +140,18 @@ def annihilation_ops(n_ferms: int) -> list:
 
 
 
-def idx_sign_under_reverse(n_ferms: int) -> list:
+def idx_sign_under_reverse(kernel_dim: int) -> list:
     """
     Determine the indices of many-body basis states which change sign under reversal of the order of the fermions.
     These are all states which contain an odd number of fermions pairs (and/or one an additional fermion).
     Parameters:
-    - n_ferms (int): The number of fermions in the system.
+    - kernel_dim: The dimension of the kernel. For valid many-body operator a power of 2.
 
     Returns:
     - list: A list of indices of many-body basis states which change sign under reversal of the order of the fermions.
     """
     
-    return [i for i in range(2**n_ferms) if (bin(i).count('1')//2)%2 == 1]
+    return [i for i in range(kernel_dim) if (bin(i).count('1')//2)%2 == 1]
     
 
 
@@ -208,12 +208,12 @@ if __name__ == "__main__":
     print(annihilation_ops_twosite[1])
 
     #Test index_signs_under_reverse for 4 sites
-    idx_signs_foursite = idx_sign_under_reverse(n_ferms = 4)
+    idx_signs_foursite = idx_sign_under_reverse(kernel_dim= 2**4)
     print("The idx_signs_under_reverse for 4 sites are:")
     print(idx_signs_foursite)
 
     #Test index_signs_under_reverse for 2  sites
-    idx_signs_twosite = idx_sign_under_reverse(n_ferms = 2)
+    idx_signs_twosite = idx_sign_under_reverse(kernel_dim= 2**2)
     print("The idx_signs_under_reverse for 2 sites are:")
     print(idx_signs_twosite)
 

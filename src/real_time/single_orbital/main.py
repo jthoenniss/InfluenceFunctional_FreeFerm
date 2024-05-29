@@ -38,6 +38,11 @@ if __name__ == "__main__":
     c_down = MB_operators['c_down']
     c_up = MB_operators['c_up']
 
+    print("c_up: ", c_up)
+    print("c_down: ", c_down)
+    print("c_up_dag: ", c_up.T)
+    print("c_down_dag: ", c_down.T)
+
  
     #_______COMPUTE PROPAGATORS
     #Grassmann:

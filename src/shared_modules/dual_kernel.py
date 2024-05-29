@@ -253,11 +253,9 @@ def sign_for_local_reversal(kernel: np.ndarray) -> np.ndarray:
     Returns:
     - np.ndarray: The adjusted dual kernel, with each row that changes sign under local reversal multiplied by -1.
     """
-    #number of Grassmann variables
-    nbr_ferms = np.log2(kernel.shape[0]).astype(int)
 
     #determine the indices of the rows that change sign under local reversal
-    indices_sign_change = idx_sign_under_reverse(nbr_ferms)
+    indices_sign_change = idx_sign_under_reverse(kernel.shape[0])
 
     #multiply the rows that change sign under local reversal with -1
     kernel[indices_sign_change,:] *= -1

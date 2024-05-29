@@ -365,7 +365,7 @@ def read_IF(filename: str) -> np.ndarray:
 
 if __name__ == '__main__':
 
-    nbr_time_steps = 4
+    nbr_time_steps = 2
     delta_t = 0.1 # time step in the environment
     nbr_substeps = 5 #number of "sub"-timesteps into which a physical timestep in the environment is divided
     mu = 0 #chemical potential, for Cohen 2015, set this to 0
@@ -374,7 +374,7 @@ if __name__ == '__main__':
     int_lim_up = 12 #upper frequency integration limit
     filename = f'../../../data/benchmark_delta_t={delta_t}_Tren={nbr_substeps}_beta={beta}_T={nbr_time_steps}'
    
-    B = compute_IF(spectral_density=lambda x: spec_dens(x), nbr_time_steps=nbr_time_steps, delta_t=delta_t, nbr_substeps=nbr_substeps, mu=mu, beta=beta, int_lim_low=int_lim_low, int_lim_up=int_lim_up)
+    B = compute_IF(spectral_density=lambda x: spec_dens(x, Gamma=1.), nbr_time_steps=nbr_time_steps, delta_t=delta_t, nbr_substeps=nbr_substeps, mu=mu, beta=beta, int_lim_low=int_lim_low, int_lim_up=int_lim_up)
     
     #to convert to simultaneous evolution scheme, uncomment the following line
     #B = convert_to_simultaneous_evol_scheme(B, nbr_time_steps_effective)
