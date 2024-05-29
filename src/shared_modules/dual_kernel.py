@@ -312,8 +312,8 @@ def operator_to_kernel(gate_coeffs: np.ndarray, string: bool = False, branch = '
 
     
     if boundary == True: #antiperiodic boundary conditions: All entries with exactly one 'barred' Grassmann variable must be multiplied by -1.
-        kernel_dual[[i for i in [1,3]],:] *= -1
-        kernel_dual[:,[i for i in [1,3]]] *= -1
+        kernel_dual[[1,3],:] *= -1
+        kernel_dual[:,[1,3]] *= -1
 
 
     #include the string in the kernel 
