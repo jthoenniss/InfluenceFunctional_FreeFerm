@@ -155,22 +155,20 @@ def idx_sign_under_reverse(kernel_dim: int) -> list:
     
 
 
-def indices_odd_and_even(n_ferms: int) -> Tuple[List[int], List[int]]:
+def indices_odd_and_even(dim_kernel: int) -> Tuple[List[int], List[int]]:
     """
     Determine the indices of many-body basis states which contain an odd and an even number of fermions, respectively.
     This is equivalent to those integers whose binary representations contain an odd/even number of '1'.
     Parameters:
-    - n_ferms (int): The number of fermions in the system.
+    - dim_kernel (int): Dimension of kernel. For valid many-body operator a power of 2.
 
     Returns:
     - Tuple: A tuple of two lists of indices of many-body basis states which contain an odd and an even number of fermions, respectively.
     """
-    # Generate all possible states as integers from 0 to 2**n_ferms - 1
-    all_states = np.arange(2**n_ferms)
-    # Count the number of 1s in the binary representation of each state
-    bin_reps = ((all_states[:, None] & (1 << np.arange(n_ferms))) != 0).astype(int)
-    num_ones = bin_reps.sum(axis=1)
 
+    #binary_representation of dim_kernel
+    num_ones = np.array([bin(num).count('1') for num in range(dim_kernel)])
+  
     # Determine odd and even indices based on the parity of the number of 1s
     indices_odd = np.where(num_ones % 2 == 1)[0].tolist()
     indices_even = np.where(num_ones % 2 == 0)[0].tolist()
@@ -186,9 +184,8 @@ def fermion_parity(operator: np.ndarray) -> int:
     Returns:
     - int: The parity of the operator. Returns 1 if the operator is even, and -1 if the operator is odd.
     """
-    dim = operator.shape[0]
 
-    indices_odd, indices_even = indices_odd_and_even(n_ferms = int(np.log2(dim)))
+    indices_odd, indices_even = indices_odd_and_even(dim_kernel = operator.shape[0])
 
     even_sum = np.sum(np.abs(operator[indices_even][:, indices_even])) + np.sum(np.abs(operator[indices_odd][:, indices_odd]))
     odd_sum = np.sum(np.abs(operator[indices_even][:, indices_odd])) + np.sum(np.abs(operator[indices_odd][:, indices_even]))

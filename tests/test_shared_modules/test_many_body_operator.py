@@ -139,14 +139,14 @@ class test_indices_odd_even(unittest.TestCase):
     
     def test_indices_odd_even(self):
 
-        idc_odd, idc_even = indices_odd_and_even(4)
+        idc_odd, idc_even = indices_odd_and_even(2**4)
         print("Testing the indices_odd_even")
         #check the indices_odd_even for 4 sites explicitly:
         self.assertTrue(np.allclose(self.even_indices_foursite,idc_even), f"The even indices are not computed correctly,\n{self.even_indices_foursite},\n{idc_even}")
         self.assertTrue(np.allclose(self.odd_indices_foursite,idc_odd), f"The odd indices are not computed correctly,\n{self.odd_indices_foursite},\n{idc_odd}")
 
         #for seven fermions:
-        idc_odd_7, idc_even_7 = indices_odd_and_even(7)
+        idc_odd_7, idc_even_7 = indices_odd_and_even(2**7)
         for i in range (2**7):
             nbr_ones = bin(i).count("1")
             
@@ -160,7 +160,7 @@ class test_fermion_parity(unittest.TestCase):
     def setUp(self)-> None:
 
         #generate the indices with even and odd fermionic indices, respectively
-        self.idcs_odd_7, self.idcs_even_7 = indices_odd_and_even(7)
+        self.idcs_odd_7, self.idcs_even_7 = indices_odd_and_even(2**7)
 
         #generate gates with even odd parity
         self.gate_odd = np.zeros((2**7,2**7),dtype=np.complex_)

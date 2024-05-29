@@ -231,11 +231,9 @@ def string_in_kernel(kernel: np.ndarray) -> np.ndarray:
     Returns:
     - np.ndarray: The adjusted dual kernel.
     """ 
-    #log with basis 2
-    n_ferms = np.log2(kernel.shape[0]).astype(int)
 
     #determine indices of rows with odd number of fermionic variables
-    indices_odd, _ = indices_odd_and_even(n_ferms)
+    indices_odd, _ = indices_odd_and_even(kernel.shape[0])
 
     #multiply the rows with odd number of fermionic variables with -1
     kernel[indices_odd,:] *= -1
