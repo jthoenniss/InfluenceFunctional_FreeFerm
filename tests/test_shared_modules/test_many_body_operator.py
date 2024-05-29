@@ -4,7 +4,7 @@ import os,sys
 parent_dir = os.path.join(os.path.dirname(__file__),"../..")
 #append parent directory to path
 sys.path.append(parent_dir)
-from src.shared_modules.many_body_operator import many_body_operator, annihilation_ops, idx_sign_under_reverse
+from src.shared_modules.many_body_operator import many_body_operator, annihilation_ops, idx_sign_under_reverse, indices_odd_and_even, fermion_parity
 
 
 class TestAnnihilationsOps(unittest.TestCase):
@@ -129,6 +129,63 @@ class test_idx_signs_under_reverse(unittest.TestCase):
         #check the decmail integer is INDEED contained in the idx_signs array
         self.assertTrue(decimal_integer in self.idx_signs_seven_site, "The decimal integer is not contained in the idx_signs array")
         
+class test_indices_odd_even(unittest.TestCase):
+
+    def setUp(self)-> None:
+        
+        #generate the indices with even and odd fermionic indices, respectively
+        self.even_indices_foursite = np.array([0,3,5,6,9,10,12,15])
+        self.odd_indices_foursite = np.array([1,2,4,7,8,11,13,14])
+    
+    def test_indices_odd_even(self):
+
+        idc_odd, idc_even = indices_odd_and_even(4)
+        print("Testing the indices_odd_even")
+        #check the indices_odd_even for 4 sites explicitly:
+        self.assertTrue(np.allclose(self.even_indices_foursite,idc_even), f"The even indices are not computed correctly,\n{self.even_indices_foursite},\n{idc_even}")
+        self.assertTrue(np.allclose(self.odd_indices_foursite,idc_odd), f"The odd indices are not computed correctly,\n{self.odd_indices_foursite},\n{idc_odd}")
+
+        #for seven fermions:
+        idc_odd_7, idc_even_7 = indices_odd_and_even(7)
+        for i in range (2**7):
+            nbr_ones = bin(i).count("1")
+            
+            if nbr_ones % 2 == 0:
+                self.assertTrue(i in idc_even_7, f"The index {i} is not contained in the even indices")
+            else:
+                self.assertTrue(i in idc_odd_7, f"The index {i} is not contained in the odd indices")
+
+class test_fermion_parity(unittest.TestCase):
+
+    def setUp(self)-> None:
+
+        #generate the indices with even and odd fermionic indices, respectively
+        self.idcs_odd_7, self.idcs_even_7 = indices_odd_and_even(7)
+
+        #generate gates with even odd parity
+        self.gate_odd = np.zeros((2**7,2**7),dtype=np.complex_)
+        self.gate_even = np.zeros((2**7,2**7),dtype=np.complex_)
+     
+
+        self.gate_even[np.ix_(self.idcs_even_7, self.idcs_even_7)] = np.random.rand(len(self.idcs_even_7), len(self.idcs_even_7))
+        self.gate_even[np.ix_(self.idcs_odd_7, self.idcs_odd_7)] = np.random.rand(len(self.idcs_odd_7), len(self.idcs_odd_7))
+        self.gate_odd[np.ix_(self.idcs_even_7, self.idcs_odd_7)] = np.random.rand(len(self.idcs_even_7), len(self.idcs_odd_7))
+        self.gate_odd[np.ix_(self.idcs_odd_7, self.idcs_even_7)] = np.random.rand(len(self.idcs_odd_7), len(self.idcs_even_7))
+
+        #generate gate with no definite parity
+        self.gate_no_parity = np.zeros((2**7,2**7),dtype=np.complex_)
+        self.gate_no_parity[np.ix_(self.idcs_even_7, self.idcs_even_7)] = np.random.rand(len(self.idcs_even_7), len(self.idcs_even_7))
+        self.gate_no_parity[np.ix_(self.idcs_even_7, self.idcs_odd_7)] = np.random.rand(len(self.idcs_even_7), len(self.idcs_odd_7))
+        
+    def test_fermion_parity(self):
+
+        print("Testing the fermion_parity")
+        #check the fermion_parity for 7 sites explicitly:
+        self.assertTrue(np.allclose(fermion_parity(self.gate_odd),-1), f"The fermion parity is not computed correctly for the gate with odd parity, got {fermion_parity(self.gate_odd)}")
+        self.assertTrue(np.allclose(fermion_parity(self.gate_even),1), f"The fermion parity is not computed correctly for the gate with even parity, got {fermion_parity(self.gate_even)}")
+        #catch assertion error for gate with no definite parity
+        with self.assertRaises(AssertionError):
+            fermion_parity(self.gate_no_parity)
 
 if __name__ == "__main__":
         unittest.main()
