@@ -19,6 +19,17 @@ def map_interleave(idx_int: int, bin_length: int) -> Tuple[int, int]:
 
     Returns:
     - Tuple[int, int]: New index after reordering and the associated sign.
+
+
+    Example of how the sign is computed:
+    consider a bit string, e.g. [a,b,c,d,e,f,g,h].
+    Divide into two: [a,b,c,d] and [e,f,g,h]
+    Move the first three entries from second half to the left past the last entry from first half:
+    new string: [a,b,c,e,f,g,d,h]. This comes with a sign if d = 1 and e,f,g contain an odd number of 1s.
+    Next, move e and f to the left past c: [a,b,e,f,c,g,d,h]. This comes with a sign if c = 1 and e,f contain an odd number of 1s.
+    Finally, move e past b to the left past b. New string: [a,e,b,f,c,g,d,h]. This comes with a sign if b = 1 and e =1.
+    The total sign is the product of the individual signs.
+    In the list comprehension below, the signs are computed in inverse order from the steps describes here, which doesn't matter as they are all summed.
     """
 
     # Convert the integer index to a binary string of fixed length
@@ -35,7 +46,7 @@ def map_interleave(idx_int: int, bin_length: int) -> Tuple[int, int]:
     # Interleave the bits from both halves to form the new index
     new_idx_bin = ''.join(a + b for a, b in zip(first_half, second_half))
     new_idx_int = int(new_idx_bin, 2)
-
+    print(sign, "  ",idx_bin, "  ",new_idx_bin)
     return new_idx_int, sign
 
 
