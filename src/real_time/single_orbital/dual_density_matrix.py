@@ -66,7 +66,9 @@ def dual_density_matrix_to_operator(dual_density_matrix: np.ndarray, step_type: 
     Returns:
     - np.ndarray: The matrix of the corresponding operator in the fermionic basis.
     """
-    
+    #make sure the original argument is not modified within this function
+    dual_density_matrix = dual_density_matrix.copy()
+
     #check size of dual density matrix
     assert dual_density_matrix.shape == (4,4), "The input must be a 4x4 matrix."
 
