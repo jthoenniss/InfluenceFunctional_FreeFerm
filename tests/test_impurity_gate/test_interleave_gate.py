@@ -111,31 +111,34 @@ class TestInterleave(unittest.TestCase):
 
         #write products of the two gates into the interleaved gate
         for i in range (4):
-            for j in range (4):
-                gate[rows[i + 4 * j],0] = D_plus[j,0] * D_minus[i,0]
-                gate[rows[i + 4 * j],1] = D_plus[j,0] * D_minus[i,1]
-                gate[rows[i + 4 * j],2] = D_plus[j,1] * D_minus[i,0]
-                gate[rows[i + 4 * j],3] = D_plus[j,1] * D_minus[i,1]
-                gate[rows[i + 4 * j],4] = D_plus[j,0] * D_minus[i,2]
-                gate[rows[i + 4 * j],5] = D_plus[j,0] * D_minus[i,3]
-                gate[rows[i + 4 * j],6] = D_plus[j,1] * D_minus[i,2]
-                gate[rows[i + 4 * j],7] = D_plus[j,1] * D_minus[i,3]
-                gate[rows[i + 4 * j],8] = D_plus[j,2] * D_minus[i,0]
-                gate[rows[i + 4 * j],9] = D_plus[j,2] * D_minus[i,1]
-                gate[rows[i + 4 * j],10] = D_plus[j,3] * D_minus[i,0]
-                gate[rows[i + 4 * j],11] = D_plus[j,3] * D_minus[i,1]
-                gate[rows[i + 4 * j],12] = D_plus[j,2] * D_minus[i,2]
-                gate[rows[i + 4 * j],13] = D_plus[j,2] * D_minus[i,3]
-                gate[rows[i + 4 * j],14] = D_plus[j,3] * D_minus[i,2]
-                gate[rows[i + 4 * j],15] = D_plus[j,3] * D_minus[i,3]
+            for j in range (4):                                        #spin up variables (descending order):
+                gate[rows[i + 4 * j],0] = D_plus[j,0] * D_minus[i,0]   # 1
+                gate[rows[i + 4 * j],1] = D_plus[j,0] * D_minus[i,1]   # out^- 
+                gate[rows[i + 4 * j],2] = D_plus[j,1] * D_minus[i,0]   # out^+
+                gate[rows[i + 4 * j],3] = D_plus[j,1] * D_minus[i,1]   # out^- out^+
 
-        #chage the sign for all variabels that ...
-        sign_changes = np.identity(16)
-        sign_changes[6,6] *= -1
-        sign_changes[7,7] *= -1
-        sign_changes[14,14] *= -1
-        sign_changes[15,15] *= -1
-        
+                gate[rows[i + 4 * j],4] = D_plus[j,0] * D_minus[i,2]   # in^- 
+                gate[rows[i + 4 * j],5] = D_plus[j,0] * D_minus[i,3]   # out^- in^- 
+                gate[rows[i + 4 * j],6] = D_plus[j,1] * D_minus[i,2]   # out^+ in^-  (sign required) 
+                gate[rows[i + 4 * j],7] = D_plus[j,1] * D_minus[i,3]   # out^- out^+ in^-(sign required)
+
+                gate[rows[i + 4 * j],8] = D_plus[j,2] * D_minus[i,0]   # in^+ 
+                gate[rows[i + 4 * j],9] = D_plus[j,2] * D_minus[i,1]   # out^- in^+
+                gate[rows[i + 4 * j],10] = D_plus[j,3] * D_minus[i,0]  # out^+ in^+
+                gate[rows[i + 4 * j],11] = D_plus[j,3] * D_minus[i,1]  # out^- out^+ in^+
+
+                gate[rows[i + 4 * j],12] = D_plus[j,2] * D_minus[i,2]  # in^- in^+
+                gate[rows[i + 4 * j],13] = D_plus[j,2] * D_minus[i,3]  # out^- in^- in^+
+                gate[rows[i + 4 * j],14] = D_plus[j,3] * D_minus[i,2]  # out^+ in^- in^+ (sign required)
+                gate[rows[i + 4 * j],15] = D_plus[j,3] * D_minus[i,3]  # out^- out^+ in^- in^+ (sign required)
+
+        #chage the sign for all entries where plus and minus pick up a sign when interleaved (those marked with "sign required" above)
+        sign_changes = np.identity(16)  
+        sign_changes[6,6] *= -1         
+        sign_changes[7,7] *= -1         
+        sign_changes[14,14] *= -1       
+        sign_changes[15,15] *= -1   
+
         #apply the sign changes
         gate = sign_changes @ gate @ sign_changes
 
