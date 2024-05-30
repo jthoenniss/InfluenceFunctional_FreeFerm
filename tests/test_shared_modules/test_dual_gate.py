@@ -4,7 +4,30 @@ import os,sys
 parent_dir = os.path.join(os.path.dirname(__file__),"../..")
 #append parent directory to path
 sys.path.append(parent_dir)
-from src.shared_modules.dual_kernel import dual_kernel, overlap_signs, operator_to_kernel, inverse_dual_kernel, string_in_kernel, imaginary_i_for_global_reversal, inverse_imaginary_i_for_global_reversal, sign_for_local_reversal
+from src.shared_modules.dual_kernel import transform_backward_kernel, dual_kernel, overlap_signs, operator_to_kernel, inverse_dual_kernel, string_in_kernel, imaginary_i_for_global_reversal, inverse_imaginary_i_for_global_reversal, sign_for_local_reversal
+
+class TestBackwardKernel(unittest.TestCase):
+
+    def setUp(self) -> None:
+
+        #set up a random 4x4 gate
+        self.gate_coeffs = np.random.rand(4,4)
+
+        #compute the backward kernel
+        self.backward_kernel = transform_backward_kernel(self.gate_coeffs)
+
+    def test_backward_kernel(self):
+
+        #compare to analytically known backward kernel
+        backward_kernel = np.array([[self.gate_coeffs[0,0], self.gate_coeffs[0,2], self.gate_coeffs[0,1], - self.gate_coeffs[0,3]],
+                                    [self.gate_coeffs[2,0], self.gate_coeffs[2,2], self.gate_coeffs[2,1], - self.gate_coeffs[2,3]],
+                                    [self.gate_coeffs[1,0], self.gate_coeffs[1,2], self.gate_coeffs[1,1], - self.gate_coeffs[1,3]],
+                                    [- self.gate_coeffs[3,0], - self.gate_coeffs[3,2], - self.gate_coeffs[3,1], self.gate_coeffs[3,3]]])
+
+        #compare the two kernels
+        self.assertTrue(np.allclose(self.backward_kernel,backward_kernel), "The backward kernel is not computed correctly")
+
+
 
 class TestDualGate(unittest.TestCase):
     
