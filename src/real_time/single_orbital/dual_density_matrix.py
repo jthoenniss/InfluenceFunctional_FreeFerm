@@ -10,7 +10,7 @@ parent_dir = os.path.join(os.path.dirname(__file__),"../../..")
 #append parent directory to path
 sys.path.append(parent_dir)
 from src.shared_modules.dual_kernel import overlap_signs, operator_to_kernel, inverse_dual_kernel, inverse_imaginary_i_for_global_reversal, sign_for_local_reversal, transform_backward_kernel
-from src.real_time.single_orbital.generate_MPO import impurity_MPO
+from src.real_time.compute_impurity_gate.interleave_gate import interleave, dict_interleave
 
 
 def half_evolve_dual_density_matrix(dual_density_matrix: np.ndarray, step_type: str = "imp") -> np.ndarray:
@@ -39,7 +39,10 @@ def half_evolve_dual_density_matrix(dual_density_matrix: np.ndarray, step_type: 
 
     elif step_type == "imp":
         #trivial impurity gate:
-        dual_impurity_gate_trivial = impurity_MPO(U_evol=np.eye(4), initial_density_matrix=np.eye(4), nbr_time_steps=2)["gates"][0]
+       
+        id_fw = operator_to_kernel(np.eye(4), branch='f')#identity kernel on forward branch
+        id_bw = operator_to_kernel(np.eye(4), branch='b')#identity kernel on backward branch
+        dual_impurity_gate_trivial = interleave(id_fw, id_bw, mapping = dict_interleave(4)) #find corresponding tensor 
 
         #reshape
         dual_impurity_gate_trivial = dual_impurity_gate_trivial.reshape(4,4,4,4)
