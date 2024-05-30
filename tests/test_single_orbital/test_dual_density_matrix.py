@@ -32,11 +32,8 @@ class Testhalf_evolve_dual_density_matrix(unittest.TestCase):
      
     def setUp(self) -> None:
          
-        #set up a random 4x4 density matrix
-        self.density_matrix = np.random.rand(4,4)
-
-        #compute the dual density matrix
-        self.dual_density_matrix = operator_to_kernel(self.density_matrix, branch='b')
+        #set up a dual density matrix
+        self.dual_density_matrix = np.random.rand(4,4)
 
     def test_half_evolve_dual_density_matrix(self):
         print("Testing the half time step evolution of the dual density matrix")
