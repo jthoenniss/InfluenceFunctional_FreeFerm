@@ -232,5 +232,33 @@ class TestInverseDualKernel(unittest.TestCase):
         self.assertTrue(np.allclose(inv_dual_gate,self.gate_coeffs), "The inverse dual kernel function is not computed correctly")
 
 
+
+class Test_Inverse_Operator_To_Kernel(unittest.TestCase):
+    def setUp(self) -> None:
+        
+        #set up a random 4x4 gate
+        self.gate_coeffs = np.random.rand(4,4)
+
+        #compute the dual gate
+        self.dual_kernel_forward = operator_to_kernel(self.gate_coeffs)
+        self.dual_kernel_backward = operator_to_kernel(self.gate_coeffs, branch='b')
+
+    def test_inverse_dual_kernel(self):
+        print("Testing the inverse dual kernel function")
+        #apply series of manipulations to invert operator_to_kernel
+        dual_kernel_forward = inverse_imaginary_i_for_global_reversal(self.dual_kernel_forward)
+        dual_kernel_forward = sign_for_local_reversal(dual_kernel_forward)
+        dual_kernel_forward = overlap_signs(dual_kernel_forward)
+        kernel_forward = inverse_dual_kernel(dual_kernel_forward)
+
+        dual_kernel_backward = inverse_imaginary_i_for_global_reversal(self.dual_kernel_backward)
+        dual_kernel_backward = sign_for_local_reversal(dual_kernel_backward)
+        dual_kernel_backward = transform_backward_kernel(dual_kernel_backward)
+        dual_kernel_backward = overlap_signs(dual_kernel_backward)
+        kernel_backward = inverse_dual_kernel(dual_kernel_backward)
+        
+        #check that the kernels mach self.gate_coeffs
+        self.assertTrue(np.allclose(kernel_forward,self.gate_coeffs), "The inverse dual kernel function is not computed correctly")
+        self.assertTrue(np.allclose(kernel_backward,self.gate_coeffs), "The inverse dual kernel function is not computed correctly")
 if __name__ == "__main__":
         unittest.main()
