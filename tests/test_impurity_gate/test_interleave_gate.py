@@ -132,7 +132,8 @@ class TestInterleave(unittest.TestCase):
                 gate[rows[i + 4 * j],14] = D_plus[j,3] * D_minus[i,2]  # out^+ in^- in^+ (sign required)
                 gate[rows[i + 4 * j],15] = D_plus[j,3] * D_minus[i,3]  # out^- out^+ in^- in^+ (sign required)
 
-        #chage the sign for all entries where plus and minus pick up a sign when interleaved (those marked with "sign required" above)
+        #chage the sign for all entries where plus and minus pick up a sign when interleaved (those marked with "sign required" above).
+        #Note that any signs between spin-up and spin-down fermions are not considered here and are taken care of in the dual kernel.
         sign_changes = np.identity(16)  
         sign_changes[6,6] *= -1         
         sign_changes[7,7] *= -1         
