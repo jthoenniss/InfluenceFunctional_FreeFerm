@@ -18,6 +18,8 @@ def half_evolve_dual_density_matrix(dual_density_matrix: np.ndarray, step_type: 
     Evolve the dual density matrix by half a time step with trivial evolution.
     It can either be evolved by a trivial (vacuum) IF-step or by a trivial (vacuum) impurity gate.
 
+    The function does not modify the input argument dual_density_matrix.
+
     Parameters:
     - dual_density_matrix (np.ndarray): A 4x4 matrix representing the 'dual' kernel of the density matrix.
     - step_type (str): The type of time step that is used. Must be set to 'imp' for the impurity gate or 'IF' for the IF-step.
