@@ -5,7 +5,6 @@ parent_dir = os.path.join(os.path.dirname(__file__),"../..")
 #append parent directory to path
 sys.path.append(parent_dir)
 from src.real_time.compute_impurity_gate.interleave_gate import map_interleave, interleave, dict_interleave
-from scipy.linalg import expm
 
 
 class TestMapInterleave(unittest.TestCase):
