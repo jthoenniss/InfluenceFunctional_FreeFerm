@@ -46,7 +46,7 @@ def map_interleave(idx_int: int, bin_length: int) -> Tuple[int, int]:
     # Interleave the bits from both halves to form the new index
     new_idx_bin = ''.join(a + b for a, b in zip(first_half, second_half))
     new_idx_int = int(new_idx_bin, 2)
-    print(sign, "  ",idx_bin, "  ",new_idx_bin)
+  
     return new_idx_int, sign
 
 
