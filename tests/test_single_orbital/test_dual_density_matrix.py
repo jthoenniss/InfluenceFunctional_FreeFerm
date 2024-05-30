@@ -43,9 +43,9 @@ class Testhalf_evolve_dual_density_matrix(unittest.TestCase):
         #evolve the dual density matrix by two half a time step and assert that is returns the original density matrix
 
         #evolve the dual density matrix by half a trivial IF step
-        dual_density_matrix = half_evolve_dual_density_matrix(self.dual_density_matrix, step_type='IF')
+        dual_density_matrix_half = half_evolve_dual_density_matrix(self.dual_density_matrix, step_type='IF')
         #evolve the dual density matrix by half a trivial impurity gate
-        dual_density_matrix = half_evolve_dual_density_matrix(dual_density_matrix, step_type='imp')
+        dual_density_matrix = half_evolve_dual_density_matrix(dual_density_matrix_half, step_type='imp')
 
         #compate to self.dual_density_matrix
         self.assertTrue(np.allclose(dual_density_matrix,self.dual_density_matrix), f"The dual density matrix is not computed correctly:\n {np.real(dual_density_matrix)} \n!= {self.dual_density_matrix}")
