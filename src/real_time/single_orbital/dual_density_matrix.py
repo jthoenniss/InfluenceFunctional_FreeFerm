@@ -34,10 +34,10 @@ def half_evolve_dual_density_matrix(dual_density_matrix: np.ndarray, step_type: 
     if step_type == "IF":
         #The many-body wavefunction of the vaccum state, reshaped to a 4x4 matrix:
         #the diagonal entries correspond to (in this order): vaccum, overlap backward, overlap forward, both overlaps
-        coeffs_single_time_vac = np.diag([1, 1, -1, 1])
+        coeffs_single_time_vac = np.array([1, 1, -1, 1])#store as array instead of diagonal matrix for faster computation
 
         #evolve the dual density matrix by half a time step using the trivial 1-step IF of the vaccum
-        dual_density_matrix = np.einsum('ij,ik,kl->jl', coeffs_single_time_vac, dual_density_matrix, coeffs_single_time_vac, optimize=True)
+        dual_density_matrix = coeffs_single_time_vac[None,:] * dual_density_matrix * coeffs_single_time_vac[:,None]
 
     elif step_type == "imp":
         #trivial impurity gate:
