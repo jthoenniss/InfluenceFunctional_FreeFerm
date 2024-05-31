@@ -4,7 +4,7 @@ import os,sys
 parent_dir = os.path.join(os.path.dirname(__file__),"../..")
 #append parent directory to path
 sys.path.append(parent_dir)
-from src.shared_modules.dual_kernel import transform_backward_kernel, dual_kernel, overlap_signs, operator_to_kernel, inverse_dual_kernel, string_in_kernel, imaginary_i_for_global_reversal, inverse_imaginary_i_for_global_reversal, sign_for_local_reversal
+from src.shared_modules.dual_kernel import transform_backward_kernel, dual_kernel, overlap_signs, operator_to_kernel, inverse_dual_kernel, string_in_kernel, imaginary_i_for_global_reversal, inverse_imaginary_i_for_global_reversal, sign_for_local_reversal, inverse_operator_to_kernel
 
 class TestBackwardKernel(unittest.TestCase):
 
@@ -240,25 +240,37 @@ class Test_Inverse_Operator_To_Kernel(unittest.TestCase):
         self.gate_coeffs = np.random.rand(4,4)
 
         #compute the dual gate
-        self.dual_kernel_forward = operator_to_kernel(self.gate_coeffs)
-        self.dual_kernel_backward = operator_to_kernel(self.gate_coeffs, branch='b')
+        self.dual_kernel1 = operator_to_kernel(self.gate_coeffs)
+        self.dual_kernel2 = operator_to_kernel(self.gate_coeffs, boundary= True)
+        self.dual_kernel3 = operator_to_kernel(self.gate_coeffs, branch='b')
+        self.dual_kernel4 = operator_to_kernel(self.gate_coeffs, boundary=True, branch='b')
+        self.dual_kernel5 = operator_to_kernel(self.gate_coeffs, string=True)
+        self.dual_kernel6 = operator_to_kernel(self.gate_coeffs, string=True, boundary=True)
+        self.dual_kernel7 = operator_to_kernel(self.gate_coeffs, string=True, branch='b')
+        self.dual_kernel8 = operator_to_kernel(self.gate_coeffs, string=True, boundary=True, branch='b')
 
     def test_inverse_dual_kernel(self):
         print("Testing the inverse dual kernel function")
-        #apply series of manipulations to invert operator_to_kernel
-        dual_kernel_forward = inverse_imaginary_i_for_global_reversal(self.dual_kernel_forward)
-        dual_kernel_forward = sign_for_local_reversal(dual_kernel_forward)
-        dual_kernel_forward = overlap_signs(dual_kernel_forward)
-        kernel_forward = inverse_dual_kernel(dual_kernel_forward)
 
-        dual_kernel_backward = inverse_imaginary_i_for_global_reversal(self.dual_kernel_backward)
-        dual_kernel_backward = sign_for_local_reversal(dual_kernel_backward)
-        dual_kernel_backward = transform_backward_kernel(dual_kernel_backward)
-        dual_kernel_backward = overlap_signs(dual_kernel_backward)
-        kernel_backward = inverse_dual_kernel(dual_kernel_backward)
-        
-        #check that the kernels mach self.gate_coeffs
-        self.assertTrue(np.allclose(kernel_forward,self.gate_coeffs), "The inverse dual kernel function is not computed correctly")
-        self.assertTrue(np.allclose(kernel_backward,self.gate_coeffs), "The inverse dual kernel function is not computed correctly")
+        #invert operator to kernel for every case
+        kernel1 = inverse_operator_to_kernel(self.dual_kernel1)
+        kernel2 = inverse_operator_to_kernel(self.dual_kernel2, boundary=True)
+        kernel3 = inverse_operator_to_kernel(self.dual_kernel3, branch='b')
+        kernel4 = inverse_operator_to_kernel(self.dual_kernel4, boundary=True, branch='b')
+        kernel5 = inverse_operator_to_kernel(self.dual_kernel5, string=True)
+        kernel6 = inverse_operator_to_kernel(self.dual_kernel6, string=True, boundary=True)
+        kernel7 = inverse_operator_to_kernel(self.dual_kernel7, string=True, branch='b')
+        kernel8 = inverse_operator_to_kernel(self.dual_kernel8, string=True, boundary=True, branch='b')
+
+        #check that inv_dual_gate indeed recovers the original gate, self.gate_coeffs
+        self.assertTrue(np.allclose(kernel1,self.gate_coeffs), "The inverse dual kernel function is not computed correctly")
+        self.assertTrue(np.allclose(kernel2,self.gate_coeffs), "The inverse dual kernel function is not computed correctly")
+        self.assertTrue(np.allclose(kernel3,self.gate_coeffs), "The inverse dual kernel function is not computed correctly")
+        self.assertTrue(np.allclose(kernel4,self.gate_coeffs), "The inverse dual kernel function is not computed correctly")
+        self.assertTrue(np.allclose(kernel5,self.gate_coeffs), "The inverse dual kernel function is not computed correctly")
+        self.assertTrue(np.allclose(kernel6,self.gate_coeffs), "The inverse dual kernel function is not computed correctly")
+        self.assertTrue(np.allclose(kernel7,self.gate_coeffs), "The inverse dual kernel function is not computed correctly")
+        self.assertTrue(np.allclose(kernel8,self.gate_coeffs), "The inverse dual kernel function is not computed correctly")
+       
 if __name__ == "__main__":
         unittest.main()

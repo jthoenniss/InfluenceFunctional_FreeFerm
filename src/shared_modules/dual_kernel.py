@@ -324,3 +324,51 @@ def operator_to_kernel(gate_coeffs: np.ndarray, string: bool = False, branch = '
    
     return kernel_dual
 
+
+
+def inverse_operator_to_kernel(kernel_dual: np.ndarray, string: bool = False, branch = 'f', boundary: bool = False) -> np.ndarray:
+    """
+    Function to invert operator_to_kernel
+
+    Parameters:
+    - kernel_dual (numpy.ndarray): A (4x4) numpy array representing the dual kernel of a many-body gate.
+    
+    - branch (string): The branch of the impurity gate. Must be set to 'f' for the forward branch and 'b' for the backward branch.
+                        For imaginary time, use 'f' (default).
+
+    - string (bool): The single-down-Grassmann entries in the gates that lie between to impurity operators 
+        that contains an odd number of Grassmann variables must be multiplied by -1 in order to give a correct global sign.
+        For these gates, string (because this corresponds to a fermionic Jordan-Wigner string) must be set to True.
+
+    - boundary (bool): If True, the kernel will be constructed with antiperiodic boundary conditions. Must be set to True for the last impurity gate.
+    
+    Returns:
+    - numpy.ndarray: A (4x4) numpy array representing the matrix of the many-body gate.
+    """
+
+    #invert application of imaginary_i_for_global_reversal
+    kernel_dual = inverse_imaginary_i_for_global_reversal(kernel_dual)
+
+    #invert application of sign_for_local_reversal (same as forward trafo)
+    kernel_dual = sign_for_local_reversal(kernel_dual)
+
+    #invert application of string_in_kernel
+    if string == True:
+        kernel_dual = string_in_kernel(kernel_dual)
+    
+    #invert application of signs from boundary condition
+    if boundary == True: #antiperiodic boundary conditions: All entries with exactly one 'barred' Grassmann variable must be multiplied by -1.
+        kernel_dual[[1,3],:] *= -1
+        kernel_dual[:,[1,3]] *= -1
+    
+    #invert transformation for backward branch (same as forward)
+    if branch == 'b':
+        kernel_dual = transform_backward_kernel(kernel_dual)
+
+    #invert application of overlap_signs (same as forward)
+    kernel_dual = overlap_signs(kernel_dual)
+
+    #invert dual_kernel
+    gate_coeffs = inverse_dual_kernel(kernel_dual)
+
+    return gate_coeffs
