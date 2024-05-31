@@ -9,7 +9,7 @@ import os,sys
 parent_dir = os.path.join(os.path.dirname(__file__),"../../..")
 #append parent directory to path
 sys.path.append(parent_dir)
-from src.shared_modules.dual_kernel import overlap_signs, operator_to_kernel, inverse_dual_kernel, inverse_imaginary_i_for_global_reversal, sign_for_local_reversal, transform_backward_kernel
+from src.shared_modules.dual_kernel import operator_to_kernel, inverse_operator_to_kernel
 from src.real_time.compute_impurity_gate.interleave_gate import interleave, dict_interleave
 
 
@@ -79,20 +79,7 @@ def dual_density_matrix_to_operator(dual_density_matrix: np.ndarray, step_type: 
 
     #Convert dual density matrix to density matrix:
 
-    # undo factors of imaginary i
-    dual_density_matrix = inverse_imaginary_i_for_global_reversal(dual_density_matrix)
-
-    # swap the order of the variables in the outgoing space (corresponds to sign changes in corresponding rows of kernel)
-    dual_density_matrix = sign_for_local_reversal(dual_density_matrix)
-    
-    # invert trafo from backward branch which is the same as forward trafo
-    dual_density_matrix = transform_backward_kernel(dual_density_matrix)
-
-    # apply inverse of 'overlap_signs' to the kernel which is the same as forward trafo
-    dual_density_matrix = overlap_signs(dual_density_matrix)
-
-    # apply inverse of 'dual_kernel' to the kernel
-    density_matrix = inverse_dual_kernel(dual_density_matrix)
+    density_matrix = inverse_operator_to_kernel(dual_density_matrix, branch='b')
 
     return density_matrix
 
