@@ -190,6 +190,10 @@ def fermion_parity(operator: np.ndarray) -> int:
     even_sum = np.sum(np.abs(operator[indices_even][:, indices_even])) + np.sum(np.abs(operator[indices_odd][:, indices_odd]))
     odd_sum = np.sum(np.abs(operator[indices_even][:, indices_odd])) + np.sum(np.abs(operator[indices_odd][:, indices_even]))
 
+    #set values below numerical precision to zero
+    even_sum = 0 if np.abs(even_sum) < 1e-14 else even_sum
+    odd_sum = 0 if np.abs(odd_sum) < 1e-14 else odd_sum
+
     assert even_sum == 0 or odd_sum == 0, 'operator has no definite parity'
     return (-1 if odd_sum != 0 else 1) 
 
