@@ -183,7 +183,7 @@ def impurity_MPO(U_evol: np.ndarray, initial_density_matrix: np.ndarray, nbr_tim
     return {'boundary_condition': MPO_boundary_condition, 'init_state': MPO_init_state, 'gates': MPO_gates, 'global_sign': global_sign}
            
 
-def gate(Ham: np.ndarray, delta_t: float, op_fw: np.ndarray = np.eye(4), op_bw: np.ndarray = np.eye(4), string_in: bool = False, boundary: bool = False) -> Tuple:
+def gate(Ham: np.ndarray, delta_t: float, op_fw: np.ndarray = None, op_bw: np.ndarray = None, string_in: bool = False, boundary: bool = False) -> Tuple:
     """
     Function to return a gate for a given Hamiltonian, inserted operators, time step, and string state.
 
@@ -201,6 +201,12 @@ def gate(Ham: np.ndarray, delta_t: float, op_fw: np.ndarray = np.eye(4), op_bw: 
 
     #determine evolution operator
     U_evol = expm(-1j*delta_t*Ham)
+
+    #if no operators are specified, use identity operators for the given dimensionality
+    if op_fw is None:
+        op_fw = np.eye(U_evol.shape[0])
+    if op_bw is None:
+        op_bw = np.eye(U_evol.shape[0])
 
     #determine parity of operators
     parity_fw = fermion_parity(op_fw)
