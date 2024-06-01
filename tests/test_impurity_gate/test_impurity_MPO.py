@@ -250,9 +250,9 @@ class TestGate(unittest.TestCase):
 
         #generate MPO_gates 
         string = False
-        gate_0, string = gate(Ham=self.Ham, delta_t=self.delta_t, op_bw = self.c_up.T, string_in=string)
-        gate_1, string = gate(Ham=self.Ham, delta_t=self.delta_t, string_in =string)
-        gate_2, string = gate(Ham=self.Ham, delta_t=self.delta_t, op_fw = self.c_down, string_in=string)
+        gate_0, string0 = gate(Ham=self.Ham, delta_t=self.delta_t, op_bw = self.c_up.T, string_in=string)
+        gate_1, string1 = gate(Ham=self.Ham, delta_t=self.delta_t, string_in =string0)
+        gate_2, string2 = gate(Ham=self.Ham, delta_t=self.delta_t, op_fw = self.c_down, string_in=string1)
         MPO_gates = [gate_0, gate_1, gate_2]
 
         #compute the expected MPO by hand and compare
@@ -266,6 +266,11 @@ class TestGate(unittest.TestCase):
         self.assertTrue(np.allclose(MPO_gates[0], MPO_bulk1), msg="The first gate is not as expected.")
         self.assertTrue(np.allclose(MPO_gates[1], MPO_bulk2), msg="The second gate is not as expected.")
         self.assertTrue(np.allclose(MPO_gates[2], MPO_bulk3), msg="The third gate is not as expected.")
+
+        #check outgoing strings explicitly
+        self.assertTrue(string0 == True, msg="The string is not as expected.")
+        self.assertTrue(string1 == True, msg="The string is not as expected.")
+        self.assertTrue(string2 == False, msg="The string is not as expected.")
 
 
     def test_gate_boundary_condition(self):
