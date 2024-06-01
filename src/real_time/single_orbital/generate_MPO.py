@@ -9,7 +9,8 @@ from src.real_time.compute_impurity_gate.interleave_gate import interleave, dict
 from src.shared_modules.dual_kernel import operator_to_kernel
 from src.shared_modules.many_body_operator import fermion_parity
 from src.shared_modules.Keldysh_contour import position_to_Keldysh_idx, Keldysh_idx_to_position
-from typing import List
+from scipy.linalg import expm
+from typing import List, Tuple
 
 def adjust_string(string: List[bool], Keldysh_idx: int, parity: int) -> List[bool]:
     """
@@ -181,3 +182,92 @@ def impurity_MPO(U_evol: np.ndarray, initial_density_matrix: np.ndarray, nbr_tim
 
     return {'boundary_condition': MPO_boundary_condition, 'init_state': MPO_init_state, 'gates': MPO_gates, 'global_sign': global_sign}
            
+
+def gate(Ham: np.ndarray, delta_t: float, op_fw: np.ndarray = np.eye(4), op_bw: np.ndarray = np.eye(4), string_in: bool = False, boundary: bool = False) -> Tuple:
+    """
+    Function to return a gate for a given Hamiltonian, inserted operators, time step, and string state.
+
+    Parameters:
+    - Ham (numpy.ndarray): The Hamiltonian of the impurity model as fermionic many-body operator.
+    - delta_t (float): The time step of the evolution.
+    - op_fw (numpy.ndarray): The operator inserted on the forward branch.
+    - op_bw (numpy.ndarray): The operator inserted on the backward branch.
+    - string_in (bool): The ingoing string state. "Ingoing" refers to the smaller time index. 
+    - boundary (bool): Indicates whether gate is the final-time gate (True) or not (False).
+
+    Returns:
+    - Tuple: A tuple containing the 16x16 gate and an updated string state, except if the boundary condition is set to True, then output is 4x4
+    """ 
+
+    #determine evolution operator
+    U_evol = expm(-1j*delta_t*Ham)
+
+    #determine parity of operators
+    parity_fw = fermion_parity(op_fw)
+    parity_bw = fermion_parity(op_bw)
+
+    string_out = string_in 
+
+    if boundary:#if gate is the final gate
+        #The last gate is never affected by the string. 
+        #As consistency check, make sure that the final gate has odd parity of the ingoing string is True and vice versa.
+        final_gate = op_bw @ U_evol.T.conj() @ op_fw @ U_evol
+        #compute parity of final gate
+        parity_final = fermion_parity(final_gate)
+        assert (string_in and parity_final == -1) or (not string_in and parity_final == 1), "The final gate must have odd parity if the ingoing string is True and vice versa."
+        
+        #return the final gate and the outgoing string state, which is always "False"
+        return operator_to_kernel(final_gate, branch='f', string = False, boundary = True), False
+
+
+    else:
+        #determine dual kernel for forward and backward branch (with or without string)
+        if parity_fw == -1 and parity_bw == 1:
+            #dual kernel, forward
+            dual_kernel_fw = operator_to_kernel(op_fw @ U_evol, branch='f', string = not string_in, boundary=boundary)
+            #dual kernel, backward
+            dual_kernel_bw = operator_to_kernel(op_bw @ U_evol.T.conj(), branch='b', string= not string_in)
+            #flip spin state
+            string_out = not string_out
+        elif parity_fw == 1 and parity_bw == -1:
+            #dual kernel, forward
+            dual_kernel_fw = operator_to_kernel(op_fw @ U_evol, branch='f', string = string_in, boundary=boundary)
+            #dual kernel, backward
+            dual_kernel_bw = operator_to_kernel(op_bw @ U_evol.T.conj(), branch='b', string= not string_in)
+            #flip spin state
+            string_out = not string_out
+        elif parity_fw == -1 and parity_bw == -1:
+            #dual kernel, forward
+            dual_kernel_fw = operator_to_kernel(op_fw @ U_evol, branch='f', string = not string_in, boundary=boundary)
+            #dual kernel, backward
+            dual_kernel_bw = operator_to_kernel(op_bw @ U_evol.T.conj(), branch='b', string= string_in)
+            #do not flip spin state here
+        else:#parity_fw = parity_bw = 1
+            #dual kernel, forward
+            dual_kernel_fw = operator_to_kernel(op_fw @ U_evol, branch='f', string = string_in, boundary=boundary)
+            #dual kernel, backward
+            dual_kernel_bw = operator_to_kernel(op_bw @ U_evol.T.conj(), branch='b', string= string_in)
+            #do not flip spin state here
+
+        #effective dual kernel
+        dual_kernel = interleave(dual_kernel_fw, dual_kernel_bw, mapping = dict_interleave(bin_length=4))
+
+        return dual_kernel, string_out
+
+def gate_initial(density_matrix: np.ndarray) -> Tuple:
+    """
+    Function to return the dual density matrix for a given many-body density matrix.
+
+    Parameters:
+    - density_matrix (numpy.ndarray): The initial density matrix of the impurity model (operator insertion have to be absorbed into this matrix).
+
+    Returns:
+    - Tuple: A tuple containing the 4x4 initial state the outgoing string
+    """     
+
+    string_out = fermion_parity(density_matrix) == -1
+
+    dual_density_matrix = operator_to_kernel(density_matrix, branch='b', string = string_out) # add string if the outgoing string is "True"
+
+
+    return dual_density_matrix, string_out
