@@ -5,7 +5,7 @@ parent_dir = os.path.join(os.path.dirname(__file__),"../..")
 #append parent directory to path
 sys.path.append(parent_dir)
 from src.real_time.compute_impurity_gate.interleave_gate import interleave, dict_interleave
-from src.real_time.single_orbital.generate_MPO import impurity_MPO, adjust_string, operator_at_Keldysh_idx, gate, gate_initial
+from src.real_time.single_orbital.generate_MPO import impurity_MPO, adjust_string, operator_at_Keldysh_idx, gate_keldysh, gate_keldysh_initial
 from src.shared_modules.Keldysh_contour import position_to_Keldysh_idx
 from src.shared_modules.many_body_operator import annihilation_ops
 from src.shared_modules.dual_kernel import operator_to_kernel
@@ -223,7 +223,7 @@ class TestImpurityMPO(unittest.TestCase):
 
 
 
-class TestGate(unittest.TestCase):
+class TestGate_keldysh(unittest.TestCase):
      
           
     def setUp(self) -> None:
@@ -250,9 +250,9 @@ class TestGate(unittest.TestCase):
 
         #generate MPO_gates 
         string = False
-        gate_0, string0 = gate(Ham=self.Ham, delta_t=self.delta_t, op_bw = self.c_up.T, string_in=string)
-        gate_1, string1 = gate(Ham=self.Ham, delta_t=self.delta_t, string_in =string0)
-        gate_2, string2 = gate(Ham=self.Ham, delta_t=self.delta_t, op_fw = self.c_down, string_in=string1)
+        gate_0, string0 = gate_keldysh(Ham=self.Ham, delta_t=self.delta_t, op_bw = self.c_up.T, string_in=string)
+        gate_1, string1 = gate_keldysh(Ham=self.Ham, delta_t=self.delta_t, string_in =string0)
+        gate_2, string2 = gate_keldysh(Ham=self.Ham, delta_t=self.delta_t, op_fw = self.c_down, string_in=string1)
         MPO_gates = [gate_0, gate_1, gate_2]
 
         #compute the expected MPO by hand and compare
@@ -278,17 +278,17 @@ class TestGate(unittest.TestCase):
         
         #check the boundary condition
         boundary_expected = np.array([[1,0,0,1],[0,0,0,0],[0,0,0,0],[1,0,0,1]])
-        boundary_computed, _ = gate(Ham=self.Ham, delta_t=self.delta_t, string_in=False, boundary = True)#second argument is outgoing string which is always "False"
+        boundary_computed, _ = gate_keldysh(Ham=self.Ham, delta_t=self.delta_t, string_in=False, boundary = True)#second argument is outgoing string which is always "False"
         self.assertTrue(np.allclose(boundary_computed, boundary_expected), msg=f"The boundary condition is not as expected. Result: \n {boundary_computed} \n Expected: \n {boundary_expected}")
 
         #now insert odd operator. This should throw an error if the ingoing string is not set to True
-        self.assertRaises(AssertionError, gate, Ham=self.Ham, delta_t=self.delta_t, op_fw = self.c_down, string_in=False, boundary = True)
+        self.assertRaises(AssertionError, gate_keldysh, Ham=self.Ham, delta_t=self.delta_t, op_fw = self.c_down, string_in=False, boundary = True)
         
         #now, set ingoing string to True. This should throw an error if the gate is even
-        self.assertRaises(AssertionError, gate, Ham=self.Ham, delta_t=self.delta_t, string_in=True, boundary = True)
+        self.assertRaises(AssertionError, gate_keldysh, Ham=self.Ham, delta_t=self.delta_t, string_in=True, boundary = True)
 
         #now, set the gate to odd and string_in = True. This should pass.
-        _, _ = gate(Ham=self.Ham, delta_t=self.delta_t, op_fw = self.c_down, string_in=True, boundary = True)
+        _, _ = gate_keldysh(Ham=self.Ham, delta_t=self.delta_t, op_fw = self.c_down, string_in=True, boundary = True)
 
     
 
@@ -310,8 +310,8 @@ class TestInitialState(unittest.TestCase):
         #check the initial state
         initial_state_even = operator_to_kernel(self.density_matrix, branch='b')
         initial_state_odd = operator_to_kernel(self.density_matrix @ self.c[0], branch='b', string = True) #if initial state is odd, the outgoing string muste be 'True'
-        dual_density_matrix, string_out = gate_initial(self.density_matrix)
-        dual_density_matrix_odd, string_out_odd = gate_initial(self.density_matrix @ self.c[0])
+        dual_density_matrix, string_out = gate_keldysh_initial(self.density_matrix)
+        dual_density_matrix_odd, string_out_odd = gate_keldysh_initial(self.density_matrix @ self.c[0])
 
         #compare the results
         self.assertTrue(np.allclose(dual_density_matrix, initial_state_even), msg="The initial state is not as expected.")
