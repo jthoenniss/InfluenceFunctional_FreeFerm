@@ -196,7 +196,7 @@ def gate(Ham: np.ndarray, delta_t: float, op_fw: np.ndarray = np.eye(4), op_bw: 
     - boundary (bool): Indicates whether gate is the final-time gate (True) or not (False).
 
     Returns:
-    - Tuple: A tuple containing the 16x16 gate and an updated string state, except if the boundary condition is set to True, then output is 4x4
+    - Tuple: A tuple containing the gate and an updated string state.
     """ 
 
     #determine evolution operator
@@ -250,7 +250,7 @@ def gate(Ham: np.ndarray, delta_t: float, op_fw: np.ndarray = np.eye(4), op_bw: 
             #do not flip spin state here
 
         #effective dual kernel
-        dual_kernel = interleave(dual_kernel_fw, dual_kernel_bw, mapping = dict_interleave(bin_length=4))
+        dual_kernel = interleave(dual_kernel_fw, dual_kernel_bw, mapping = dict_interleave(bin_length=U_evol.shape[0]))
 
         return dual_kernel, string_out
 
@@ -262,7 +262,7 @@ def gate_initial(density_matrix: np.ndarray) -> Tuple:
     - density_matrix (numpy.ndarray): The initial density matrix of the impurity model (operator insertion have to be absorbed into this matrix).
 
     Returns:
-    - Tuple: A tuple containing the 4x4 initial state the outgoing string
+    - Tuple: A tuple containing the gate for the initial state and the outgoing string
     """     
 
     string_out = fermion_parity(density_matrix) == -1
