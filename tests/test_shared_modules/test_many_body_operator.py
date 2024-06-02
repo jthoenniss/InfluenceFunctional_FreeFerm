@@ -187,5 +187,12 @@ class test_fermion_parity(unittest.TestCase):
         with self.assertRaises(AssertionError):
             fermion_parity(self.gate_no_parity)
 
+        #check parity for annihilation operators in different dimensions
+        for i in range (1,8):
+            c_ops = np.array(annihilation_ops(n_ferms = i))
+            for j in range (i):
+                c_op = c_ops[j]
+                self.assertTrue(fermion_parity(c_op) == -1 , f"The fermion parity is not computed correctly for the annihilation operator with odd parity, got {fermion_parity(c_op)}")
+
 if __name__ == "__main__":
         unittest.main()
